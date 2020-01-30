@@ -8,6 +8,12 @@ verify_ssl = true
 [packages]
 requests = "*"
 pipfile = "*"
+torch = "*"
+torchvision = "*"
+matplotlib = "*"
+jupyter = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"
+torch = "*"

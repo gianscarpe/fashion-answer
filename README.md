@@ -8,3 +8,6 @@ Davide Samotti - xxx - d.samotti@campus.unimib.it
 
 ## Bot
 You can find telegram bot at @fasionmatcherbot
+
+## Dataset
+You can find fashion dataset at https://www.kaggle.com/paramaggarwal/fashion-product-images-small
