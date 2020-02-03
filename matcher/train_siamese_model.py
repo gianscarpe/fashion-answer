@@ -2,10 +2,11 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 from torchvision import transforms
-from matcher.models import Net
+from matcher.models import SiameseNet
 from matcher.dataset import SiameseDataset
 from torch.utils.data import DataLoader
 import time
+
 
 
 def main():
@@ -21,7 +22,7 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
-    model = Net(image_size=config['image_size']).to(device)
+    model = SiameseNet(image_size=config['image_size']).to(device)
 
     train_loader = DataLoader(
         SiameseDataset('data/fashion-product-images-small/images',
@@ -49,33 +50,38 @@ def main():
 def train(model, device, train_loader, epoch, optimizer, batch_size):
     model.train()
     t0 = time.time()
+    mean_train_loss = 0
+    n_examples = 0
     for batch_idx, (data, target) in enumerate(train_loader):
         for i in range(len(data)):
             data[i] = data[i].to(device)
 
         optimizer.zero_grad()
-        output_positive = model(data[:, 0])
-        output_negative = model(data[:, 1])
+        output_positive = torch.squeeze(model(data[:, 0]))
+        output_negative = torch.squeeze(model(data[:, 1]))
 
-        target = target.type(torch.LongTensor).to(device)
+        target = target.type(torch.FloatTensor).to(device)
         target_positive = torch.squeeze(target[:, 0])
         target_negative = torch.squeeze(target[:, 1])
 
-        loss_positive = F.cross_entropy(output_positive, target_positive)
-        loss_negative = F.cross_entropy(output_negative, target_negative)
+        loss_positive = F.binary_cross_entropy_with_logits(output_positive, target_positive)
+        loss_negative = F.binary_cross_entropy_with_logits(output_negative, target_negative)
 
         loss = loss_positive + loss_negative
         loss.backward()
+        n_examples += 1
+        mean_train_loss = ((mean_train_loss * n_examples - 1) + loss.item()) / n_examples
 
         optimizer.step()
         if batch_idx % 10 == 0:
-            print('Train Epoch: {} {:.1f}s [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, (time.time() - t0), batch_idx * batch_size, len(train_loader.dataset),
-                                           100. * batch_idx * batch_size / len(
-                                               train_loader.dataset), loss.item()))
+            print('Train Epoch: {} {:.1f}s [{}/{} ({:.0f}%)]\t Pos: {:.6f} Neg: {:.6f} '
+                  '\tMeanLoss: {:.6f}'.format(
+                epoch + 1, (time.time() - t0), batch_idx * batch_size, len(train_loader.dataset),
+                100. * batch_idx * batch_size / len(
+                    train_loader.dataset), loss_positive, loss_negative, mean_train_loss))
 
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, thr=.5):
     model.eval()
 
     with torch.no_grad():
@@ -86,22 +92,22 @@ def test(model, device, test_loader):
             for i in range(len(data)):
                 data[i] = data[i].to(device)
 
-            output_positive = model(data[:, 0])
-            output_negative = model(data[:, 1])
+            output_positive = torch.squeeze(model(data[:, 0]))
+            output_negative = torch.squeeze(model(data[:, 1]))
 
-            target = target.type(torch.LongTensor).to(device)
+            target = target.type(torch.FloatTensor).to(device)
             target_positive = torch.squeeze(target[:, 0])
             target_negative = torch.squeeze(target[:, 1])
 
-            loss_positive = F.cross_entropy(output_positive, target_positive)
-            loss_negative = F.cross_entropy(output_negative, target_negative)
+            loss_positive = F.binary_cross_entropy_with_logits(output_positive, target_positive)
+            loss_negative = F.binary_cross_entropy_with_logits(output_negative, target_negative)
 
             loss = loss + loss_positive + loss_negative
 
             accurate_labels_positive = torch.sum(
-                torch.argmax(output_positive, dim=1) == target_positive).cpu()
+                (output_positive > thr) == target_positive).cpu()
             accurate_labels_negative = torch.sum(
-                torch.argmax(output_negative, dim=1) == target_negative).cpu()
+                (output_positive > thr) == target_negative).cpu()
 
             accurate_labels = accurate_labels + accurate_labels_positive + accurate_labels_negative
             all_labels = all_labels + len(target_positive) + len(target_negative)

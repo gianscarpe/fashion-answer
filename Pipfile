@@ -13,7 +13,7 @@ torchvision = "*"
 matplotlib = "*"
 jupyter = "*"
 pandas = "*"
-
+sklearn = "*"
 [requires]
 python_version = "3.7"
 torch = "*"

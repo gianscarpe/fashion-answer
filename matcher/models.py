@@ -1,52 +1,93 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torchvision.models import alexnet
+
+import torch
+from torch import nn
+import torch.nn.functional as F
+from torchvision.models import alexnet
 
 
-class Net(nn.Module):
+class ClassificationNet(nn.Module):
+    def __init__(self, image_size, n_classes):
+        super().__init__()
+
+        self.pre_net = alexnet(pretrained=True)
+        for child in self.pre_net.children():
+            for param in child.parameters():
+                param.requires_grad = False
+
+        self.pre_net.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 32),
+            nn.ReLU(inplace=True),
+        )
+
+        for param in self.pre_net.classifier.parameters():
+            param.requires_grad = True
+
+        self.classifier = nn.Linear(32, n_classes)
+
+    def forward(self, data):
+        x = data
+        x = self.pre_net(x)
+        x = self.classifier(x)
+        return F.softmax(x)
+
+    def oneshot(model, device, data):
+        model.eval()
+
+        with torch.no_grad():
+            for i in range(len(data)):
+                data[i] = data[i].to(device)
+
+            output = model(data)
+            return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
+
+
+class SiameseNet(nn.Module):
     def __init__(self, image_size):
         super().__init__()
 
-        self.conv1 = nn.Conv2d(1, 4, kernel_size=3)
-        output_size = [(image_size[0] - 2) / 2, (image_size[1] - 2) / 2]
-        self.conv2 = nn.Conv2d(4, 8, kernel_size=3)
-        self.conv3 = nn.Conv2d(8, 16, kernel_size=3)
+        self.pre_net = alexnet(pretrained=True)
+        for child in self.pre_net.children():
+            for param in child.parameters():
+                param.requires_grad = False
 
-        self.pool1 = nn.MaxPool2d(2)
+        self.pre_net.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 32),
+            nn.ReLU(inplace=True),
+        )
+        for param in self.pre_net.classifier.parameters():
+            param.requires_grad = True
 
-        self.linear1 = nn.Linear(640, 16)
-
-        self.linear2 = nn.Linear(16, 2)
+        self.classifier = nn.Linear(32, 1)
 
     def forward(self, data):
         res = []
         for i in range(2):  # Siamese nets; sharing weights
             x = data[:, i]
-            x = self.conv1(x)
-            x = F.relu(x)
-            x = self.pool1(x)
-            x = self.conv2(x)
-            x = F.relu(x)
-            x = self.pool1(x)
-            x = self.conv3(x)
-            x = F.relu(x)
-            x = self.pool1(x)
-
-            x = x.view(x.shape[0], -1)
-            x = self.linear1(x)
-            res.append(F.relu(x))
+            x = self.pre_net(x)
+            res.append(x)
 
         res = torch.abs(res[1] - res[0])
-        res = self.linear2(res)
+        res = self.classifier(res)
         return res
 
+    def oneshot(model, device, data):
+        model.eval()
 
-def oneshot(model, device, data):
-    model.eval()
+        with torch.no_grad():
+            for i in range(len(data)):
+                data[i] = data[i].to(device)
 
-    with torch.no_grad():
-        for i in range(len(data)):
-            data[i] = data[i].to(device)
-
-        output = model(data)
-        return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
+            output = model(data)
+            return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
