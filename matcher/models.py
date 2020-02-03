@@ -18,25 +18,15 @@ class ClassificationNet(nn.Module):
             for param in child.parameters():
                 param.requires_grad = False
 
-        self.pre_net.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 32),
-            nn.ReLU(inplace=True),
-        )
+        self.pre_net.classifier = nn.Linear(256 * 6 * 6, n_classes)
 
         for param in self.pre_net.classifier.parameters():
             param.requires_grad = True
 
-        self.classifier = nn.Linear(32, n_classes)
-
     def forward(self, data):
         x = data
         x = self.pre_net(x)
-        x = self.classifier(x)
-        return F.softmax(x)
+        return x
 
     def oneshot(model, device, data):
         model.eval()

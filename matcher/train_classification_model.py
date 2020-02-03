@@ -5,9 +5,10 @@ from torchvision import transforms
 from matcher.models import ClassificationNet
 from matcher.dataset import ClassificationDataset
 from torch.utils.data import DataLoader
+from torch.nn import CrossEntropyLoss
 import time
 import os
-
+import numpy as np
 
 def main():
     config = {
@@ -51,8 +52,8 @@ def main():
 def train(model, device, train_loader, epoch, optimizer, batch_size):
     model.train()
     t0 = time.time()
-    mean_train_loss = 0
-    n_examples = 0
+    training_loss = []
+    criterion = CrossEntropyLoss()
     for batch_idx, (data, target) in enumerate(train_loader):
         for i in range(len(data)):
             data[i] = data[i].to(device)
@@ -60,16 +61,18 @@ def train(model, device, train_loader, epoch, optimizer, batch_size):
         optimizer.zero_grad()
         output = torch.squeeze(model(data))
 
-        loss = F.cross_entropy(output, target)
-
+        loss = criterion(output, target)
+        training_loss.append(loss.item())
         loss.backward()
 
         optimizer.step()
         if batch_idx % 10 == 0:
-            print('Train Epoch: {} {:.1f}s [{}/{} ({:.0f}%)] \tMeanLoss: {:.6f}'.format(
-                epoch + 1, (time.time() - t0), batch_idx * batch_size, len(train_loader.dataset),
+            print('Train Epoch: {} [{}/{} ({:.0f}%)] \tBatch Loss: {:.6f}'.format(
+                epoch + 1, batch_idx * batch_size, len(train_loader.dataset),
                 100. * batch_idx * batch_size / len(
                     train_loader.dataset), loss))
+    print('Train Epoch: \tMeanLoss: {:.6f}'.format(
+        epoch + 1, (time.time() - t0), np.average(training_loss)))
 
 
 def test(model, device, test_loader, thr=.5):
@@ -88,7 +91,7 @@ def test(model, device, test_loader, thr=.5):
             loss = F.cross_entropy(output, target)
 
             accurate_labels = torch.sum(
-                (output > thr) == target).cpu()
+                torch.argmax(output) == target).cpu()
             all_labels += 1
 
         accuracy = 100. * accurate_labels / all_labels
