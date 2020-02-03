@@ -52,6 +52,7 @@ class ClassificationDataset(Dataset):
 
         print("Building classification dataset ")
         if load_path:
+
             with open(os.path.join(load_path, 'images_id.pickle'), 'rb') as pic:
                 self.images_id = pickle.load(pic)
 

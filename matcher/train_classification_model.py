@@ -10,6 +10,7 @@ import time
 import os
 import numpy as np
 
+
 def main():
     config = {
         'save_frequency': 2,
@@ -18,33 +19,43 @@ def main():
         'num_epochs': 10,
         'weight_decay': 0.0001,
         'exp_base_dir': 'data/exps/exp1',
-        'image_size': [224, 224]
+        'image_size': [224, 224],
+        'load_path': "data/exps/exp1/classification_001.pt",
     }
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    trans = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+    start_epoch = 1
 
     train_loader = DataLoader(
         ClassificationDataset('data/fashion-product-images-small/images',
                               'data/fashion-product-images-small/small_train.csv',
+                              load_path='data/fashion-product-images-small/classification/train',
                               image_size=config['image_size']),
         batch_size=config['batch_size'], shuffle=True)
 
     val_loader = DataLoader(
         ClassificationDataset('data/fashion-product-images-small/images',
                               'data/fashion-product-images-small/small_val.csv',
-                              image_size=config['image_size']),
+                              image_size=config['image_size'],
+                              thr=5),
         batch_size=config['batch_size'], shuffle=True)
 
     model = ClassificationNet(image_size=config['image_size'],
                               n_classes=train_loader.dataset.n_classes).to(device)
 
+    if config['load_path']:
+        print("Loading and evaluating model")
+        model = torch.load(config['load_path'])
+        start_epoch = int(max(os.listdir('data/exps/exp1'))[-6:-3])
+        test(model, device, val_loader)
+
     optimizer = optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
 
-    for epoch in range(config['num_epochs']):
+    for epoch in range(start_epoch, config['num_epochs']):
         train(model, device, train_loader, epoch, optimizer, config['batch_size'])
         test(model, device, val_loader)
-        if epoch & config['save_frequency'] == 0:
+        if epoch % config['save_frequency'] == 0:
+            print("Saving model")
             torch.save(model, os.path.join(config['exp_base_dir'],
                                            'classification_{:03}.pt'.format(epoch)))
 
@@ -71,32 +82,33 @@ def train(model, device, train_loader, epoch, optimizer, batch_size):
                 epoch + 1, batch_idx * batch_size, len(train_loader.dataset),
                 100. * batch_idx * batch_size / len(
                     train_loader.dataset), loss))
-    print('Train Epoch: \tMeanLoss: {:.6f}'.format(
+    print('Train Epoch: {}\t time:{:.3f}s \tMeanLoss: {:.6f}'.format(
         epoch + 1, (time.time() - t0), np.average(training_loss)))
 
 
-def test(model, device, test_loader, thr=.5):
+def test(model, device, test_loader):
     model.eval()
 
     with torch.no_grad():
         accurate_labels = 0
         all_labels = 0
-        loss = 0
+        val_loss = []
         for batch_idx, (data, target) in enumerate(test_loader):
             for i in range(len(data)):
                 data[i] = data[i].to(device)
 
             output = torch.squeeze(model(data))
 
-            loss = F.cross_entropy(output, target)
+            val_loss.append(F.cross_entropy(output, target))
 
-            accurate_labels = torch.sum(
-                torch.argmax(output) == target).cpu()
-            all_labels += 1
+            accurate_labels += torch.sum(
+                (torch.argmax(F.softmax(output), dim=1) == target))
+            all_labels += len(target)
 
-        accuracy = 100. * accurate_labels / all_labels
+        accuracy = t
         print('Test accuracy: {}/{} ({:.3f}%)\tLoss: {:.6f}'.format(accurate_labels, all_labels,
-                                                                    accuracy, loss))
+                                                                    accuracy,
+                                                                    np.average(val_loss)))
 
 
 if __name__ == '__main__':
