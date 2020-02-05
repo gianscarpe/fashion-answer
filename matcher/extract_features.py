@@ -2,13 +2,9 @@ import torch
 import os
 from PIL import Image
 import torchvision.transforms.functional as TF
-from torch.nn import Sequential
 import numpy as np
 
-
-def get_feature_extractor(model):
-    model.pre_net.classifier = Sequential()
-
+from matcher.models import get_feature_extractor
 
 if __name__ == '__main__':
 

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.nn import Sequential
 from torchvision.models import alexnet
 
 import torch
@@ -37,6 +38,9 @@ class ClassificationNet(nn.Module):
 
             output = model(data)
             return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
+
+    def set_as_feature_extractor(self):
+        self.pre_net.classifier = Sequential()
 
 
 class SiameseNet(nn.Module):
@@ -81,3 +85,7 @@ class SiameseNet(nn.Module):
 
             output = model(data)
             return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
+
+
+def set_as_feature_extractor(model):
+    model.pre_net.classifier = Sequential()

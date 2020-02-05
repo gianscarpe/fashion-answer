@@ -7,6 +7,8 @@ import numpy as np
 from sklearn.neighbors import KDTree
 import time
 import pickle
+from matcher.features import FeatureMatcher
+
 
 def get_feature_extractor(model):
     model.pre_net.classifier = Sequential()
@@ -23,33 +25,13 @@ if __name__ == '__main__':
         'index_path': 'data/fashion-product-images-small/features/index.pickle',
     }
 
-    with open(config['index_path'], "rb") as pic:
-        index = pickle.load(pic)
+    fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
+                        index_path=config['index_path'])
 
-    print("Loading model")
-    model = torch.load(config['load_path'])
-    get_feature_extractor(model)
+    img_id = fm.get_k_most_similar(config['input_path'], image_size=config['image_size'])[0]
 
-    image = Image.open(config['input_path']).convert('RGB').resize(config['image_size'])
-    image.show()
+    image_path = os.path.join(config['data_path'], str(img_id) + ".jpg")
 
-    x = TF.to_tensor(image)
-    feature = model(x.unsqueeze(0))
-    print('Loading features')
-    t0 = time.time()
-
-    features_matrix = np.squeeze(np.load(config['features_path']))
-    tree = KDTree(features_matrix)
-    print("Loaded in {}s".format(time.time() - t0))
-
-    t0 = time.time()
-    print("Looking for ...")
-    similar = tree.query(feature, return_distance=False)
-
-    print("Found in {}s".format(t0 - time.time()))
-
-    img_id = index[similar[0][0]][:-4]
-    image_path = os.path.join(config['data_path'], str(img_id) + '.jpg')
     image = Image.open(image_path).convert('RGB').resize(config['image_size'])
     image.show()
 

@@ -87,23 +87,3 @@ class Bot:
                 self.max_update_id = r['update_id']
         # return updates
         return data['result']
-
-
-if __name__ == "__main__":
-    bot = Bot('128366843:AAHovviK9AQDbcWJkM9JkqDAt8B5oLUUCQI')
-    while True:
-        # print(bot.getUpdates())
-        for u in bot.getUpdates():
-            print(u['message'])
-            messageType = bot.getMessageType(u['message'])
-            print(messageType)
-            if 'photo' in u['message']:
-                local_filename = bot.getFile(u['message']['photo'][-1]['file_id'])
-                print(local_filename)
-            if 'voice' in u['message']:
-                local_filename = bot.getFile(u['message']['voice']['file_id'])
-                print(local_filename)
-            if 'document' in u['message']:
-                local_filename = bot.getFile(u['message']['document']['file_id'])
-                print(local_filename)
-        time.sleep(2)
