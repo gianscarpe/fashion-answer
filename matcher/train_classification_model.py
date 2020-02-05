@@ -45,8 +45,8 @@ def main():
 
     if config['load_path']:
         print("Loading and evaluating model")
+        start_epoch = int(config['load_path'][-6:-3])
         model = torch.load(config['load_path'])
-        start_epoch = int(max(os.listdir('data/exps/exp1'))[-6:-3])
         test(model, device, val_loader)
 
     optimizer = optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
@@ -55,7 +55,6 @@ def main():
         train(model, device, train_loader, epoch, optimizer, config['batch_size'])
         test(model, device, val_loader)
         if epoch % config['save_frequency'] == 0:
-            print("Saving model")
             torch.save(model, os.path.join(config['exp_base_dir'],
                                            'classification_{:03}.pt'.format(epoch)))
 
@@ -105,7 +104,7 @@ def test(model, device, test_loader):
                 (torch.argmax(F.softmax(output), dim=1) == target))
             all_labels += len(target)
 
-        accuracy = t
+        accuracy = 100. * accurate_labels.cpu().numpy() / all_labels
         print('Test accuracy: {}/{} ({:.3f}%)\tLoss: {:.6f}'.format(accurate_labels, all_labels,
                                                                     accuracy,
                                                                     np.average(val_loss)))
