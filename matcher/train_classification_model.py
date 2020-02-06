@@ -20,22 +20,22 @@ def main():
         'weight_decay': 0.0001,
         'exp_base_dir': 'data/exps/exp1',
         'image_size': [224, 224],
-        'load_path': "data/exps/exp1/classification_001.pt",
+        'load_path': None,
     }
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     start_epoch = 1
 
     train_loader = DataLoader(
-        ClassificationDataset('data/fashion-product-images-small/images',
-                              'data/fashion-product-images-small/small_train.csv',
-                              load_path='data/fashion-product-images-small/classification/train',
+        ClassificationDataset('./data/images/',
+                              './data/small_train.csv',
+                              load_path=None,
                               image_size=config['image_size']),
         batch_size=config['batch_size'], shuffle=True)
 
     val_loader = DataLoader(
-        ClassificationDataset('data/fashion-product-images-small/images',
-                              'data/fashion-product-images-small/small_val.csv',
+        ClassificationDataset('./data/images',
+                              './data/small_val.csv',
                               image_size=config['image_size'],
                               thr=5),
         batch_size=config['batch_size'], shuffle=True)
@@ -49,10 +49,12 @@ def main():
         model = torch.load(config['load_path'])
         test(model, device, val_loader)
 
-    optimizer = optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
+    optimizer = optim.Adam(
+        model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
 
     for epoch in range(start_epoch, config['num_epochs']):
-        train(model, device, train_loader, epoch, optimizer, config['batch_size'])
+        train(model, device, train_loader, epoch,
+              optimizer, config['batch_size'])
         test(model, device, val_loader)
         if epoch % config['save_frequency'] == 0:
             torch.save(model, os.path.join(config['exp_base_dir'],
