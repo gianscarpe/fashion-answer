@@ -16,11 +16,12 @@ def main():
         "save_frequency": 2,
         "save_best": True,
         "classes": ["masterCategory", "subCategory", "gender"],
+        "model_name": "alexnet",
         "batch_size": 16,
         "lr": 0.001,
         "num_epochs": 50,
         "weight_decay": 0.0001,
-        "exp_base_dir": "data/exps/exp2",
+        "exp_base_dir": "data/exps/exp1",
         "image_size": [224, 224],
         "load_path": None,
     }
@@ -60,7 +61,7 @@ def main():
     model = ClassificationNet(
         image_size=config["image_size"],
         n_classes=train_loader.dataset.n_classes,
-        name="resnet18",
+        name=config["model_name"],
     ).to(device)
 
     if config["load_path"]:
@@ -74,14 +75,15 @@ def main():
     )
 
     best_accu = 0.0
-    for epoch in range(start_epoch, config["num_epochs"]):
+    for epoch in range(start_epoch, config["num_epochs"] + 1):
         train(model, device, train_loader, epoch, optimizer, config["batch_size"])
         accuracies = test(model, device, val_loader)
         if epoch % config["save_frequency"] == 0:
             torch.save(
                 model,
                 os.path.join(
-                    config["exp_base_dir"], "classification_{:03}.pt".format(epoch)
+                    config["exp_base_dir"],
+                    config["model_name"] + "_{:03}.pt".format(epoch),
                 ),
             )
         if config["save_frequency"]:
@@ -91,7 +93,9 @@ def main():
                 best_accu = accu
                 torch.save(
                     model,
-                    os.path.join(config["exp_base_dir"], "classification_best.pt"),
+                    os.path.join(
+                        config["exp_base_dir"], config["model_name"] + "_best.pt"
+                    ),
                 )
 
 
@@ -121,7 +125,7 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
         if batch_idx % 10 == 0:
             print(
                 "Train Epoch: {} [{}/{} ({:.0f}%)] \tBatch Loss: {:.6f}".format(
-                    epoch + 1,
+                    epoch,
                     batch_idx * batch_size,
                     len(train_loader.dataset),
                     100.0 * batch_idx * batch_size / len(train_loader.dataset),
@@ -130,7 +134,7 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
             )
     print(
         "Train Epoch: {}\t time:{:.3f}s \tMeanLoss: {:.6f}".format(
-            epoch + 1, (time.time() - t0), np.average(training_loss)
+            epoch, (time.time() - t0), np.average(training_loss)
         )
     )
 
@@ -167,12 +171,12 @@ def test(model, device, test_loader, n_label=3):
         for i in range(n_label):
             accuracies[i] = 100.0 * accurate_labels[i].item() / all_labels
         print(
-            "Test accuracy: ({})/{} ({})\tLoss: {:.6f}".format(
+            "Test accuracy: ({})/{} ({}), Loss: ({})".format(
                 ", ".join([str(accurate_labels[i].item()) for i in range(n_label)]),
                 all_labels,
                 ", ".join(["{:.3f}%".format(accuracies[i]) for i in range(n_label)]),
-                "".join(
-                    str(loss)
+                ", ".join(
+                    "{:.6f}".format(loss)
                     for loss in torch.mean(torch.tensor(val_loss), dim=0).data.tolist()
                 ),
             )
