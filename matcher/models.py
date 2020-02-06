@@ -20,9 +20,30 @@ class ClassificationNet(nn.Module):
             for param in child.parameters():
                 param.requires_grad = False
 
-        self.classifier1 = nn.Linear(256 * 6 * 6, n_classes[0])
-        self.classifier2 = nn.Linear(256 * 6 * 6, n_classes[1])
-        self.classifier3 = nn.Linear(256 * 6 * 6, n_classes[2])
+        self.classifier1 = nn.Sequential(
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 2048),
+            nn.ReLU(inplace=True),
+            nn.Linear(2048, n_classes[0]),
+        )
+        self.classifier2 = nn.Sequential(
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 2048),
+            nn.ReLU(inplace=True),
+            nn.Linear(2048, n_classes[1]),
+        )
+        self.classifier3 = nn.Sequential(
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 2048),
+            nn.ReLU(inplace=True),
+            nn.Linear(2048, n_classes[2]),
+        )
 
         for param in self.pre_net.classifier.parameters():
             param.requires_grad = True

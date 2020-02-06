@@ -31,7 +31,7 @@ def main():
         ClassificationDataset(
             "./data/images/",
             "./data/small_train.csv",
-            distinguish_class=["masterCategory", "subCategory", "baseColour"],
+            distinguish_class=["masterCategory", "subCategory", "gender"],
             load_path=None,
             image_size=config["image_size"],
         ),
@@ -43,7 +43,7 @@ def main():
         ClassificationDataset(
             "./data/images",
             "./data/small_val.csv",
-            distinguish_class=["masterCategory", "subCategory", "baseColour"],
+            distinguish_class=["masterCategory", "subCategory", "gender"],
             image_size=config["image_size"],
             thr=5,
         ),
