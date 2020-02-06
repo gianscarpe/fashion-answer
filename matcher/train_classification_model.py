@@ -24,6 +24,7 @@ def main():
     }
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
     start_epoch = 1
 
     train_loader = DataLoader(
@@ -106,10 +107,10 @@ def test(model, device, test_loader):
                 (torch.argmax(F.softmax(output), dim=1) == target))
             all_labels += len(target)
 
-        accuracy = 100. * accurate_labels.cpu().numpy() / all_labels
+        accuracy = 100. * accurate_labels.item() / all_labels
         print('Test accuracy: {}/{} ({:.3f}%)\tLoss: {:.6f}'.format(accurate_labels, all_labels,
                                                                     accuracy,
-                                                                    np.average(val_loss)))
+                                                                    torch.mean(torch.stack(val_loss))))
 
 
 if __name__ == '__main__':
