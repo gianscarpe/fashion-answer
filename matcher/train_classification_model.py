@@ -95,11 +95,11 @@ def main():
                 )
 
 
-def train(model, device, train_loader, epoch, optimizer, batch_size, n_classes=3):
+def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
     model.train()
     t0 = time.time()
     training_loss = []
-    criterions = [CrossEntropyLoss() for i in range(n_classes)]
+    criterions = [CrossEntropyLoss() for i in range(n_label)]
     for batch_idx, (data, target) in enumerate(train_loader):
         for i in range(len(data)):
             data[i] = data[i].to(device)
@@ -110,10 +110,10 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_classes=3
         loss = sum(
             [
                 criterions[i](torch.squeeze(output[i]), target[:, i])
-                for i in range(n_classes)
+                for i in range(n_label)
             ]
         )
-        loss /= n_classes
+        loss /= n_label
         training_loss.append(loss.item())
         loss.backward()
 
@@ -171,7 +171,10 @@ def test(model, device, test_loader, n_label=3):
                 ", ".join([str(accurate_labels[i].item()) for i in range(n_label)]),
                 all_labels,
                 ", ".join(["{:.3f}%".format(accuracies[i]) for i in range(n_label)]),
-                0,
+                "".join(
+                    str(loss)
+                    for loss in torch.mean(torch.tensor(val_loss), dim=0).data.tolist()
+                ),
             )
         )
         return accuracies
