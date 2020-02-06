@@ -15,19 +15,28 @@ class ClassificationNet(nn.Module):
         super().__init__()
 
         self.pre_net = alexnet(pretrained=True)
+
         for child in self.pre_net.children():
             for param in child.parameters():
                 param.requires_grad = False
 
-        self.pre_net.classifier = nn.Linear(256 * 6 * 6, n_classes)
+        self.classifier1 = nn.Linear(256 * 6 * 6, n_classes[0])
+        self.classifier2 = nn.Linear(256 * 6 * 6, n_classes[1])
+        self.classifier3 = nn.Linear(256 * 6 * 6, n_classes[2])
 
         for param in self.pre_net.classifier.parameters():
             param.requires_grad = True
 
     def forward(self, data):
         x = data
-        x = self.pre_net(x)
-        return x
+        x = self.pre_net.features(x)
+        x = self.pre_net.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = F.dropout(x)
+        w = self.classifier1(x)
+        y = self.classifier2(x)
+        z = self.classifier3(x)
+        return (w, y, z)
 
     def oneshot(model, device, data):
         model.eval()
