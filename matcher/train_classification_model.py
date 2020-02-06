@@ -116,30 +116,43 @@ def train(model, device, train_loader, epoch, optimizer, batch_size):
     )
 
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, n_label=3):
     model.eval()
 
     with torch.no_grad():
         accurate_labels = 0
         all_labels = 0
         val_loss = []
+        accurate_labels = [0, 0, 0]
+        accuracies = [0, 0, 0]
         for batch_idx, (data, target) in enumerate(test_loader):
             for i in range(len(data)):
                 data[i] = data[i].to(device)
 
-            output = torch.squeeze(model(data))
-
-            val_loss.append(F.cross_entropy(output, target))
-
-            accurate_labels += torch.sum(
-                (torch.argmax(F.softmax(output), dim=1) == target)
+            output = model(data)
+            target = target.long()
+            val_loss.append(
+                [
+                    F.cross_entropy(torch.squeeze(output[i]), target[:, i])
+                    for i in range(n_label)
+                ]
             )
+
+            for i in range(n_label):
+                accurate_labels[i] += torch.sum(
+                    (torch.argmax(F.softmax(output[i]), dim=1) == target[:, i])
+                )
+
             all_labels += len(target)
 
-        accuracy = 100.0 * accurate_labels.item() / all_labels
+        for i in range(n_label):
+            accuracies[i] = 100.0 * accurate_labels[i].item() / all_labels
         print(
-            "Test accuracy: {}/{} ({:.3f}%)\tLoss: {:.6f}".format(
-                accurate_labels, all_labels, accuracy, torch.mean(torch.stack(val_loss))
+            "Test accuracy: ({})/{} ({})\tLoss: {:.6f}".format(
+                ", ".join([str(accurate_labels[i].item()) for i in range(n_label)]),
+                all_labels,
+                ", ".join(["{:.3f}%".format(accuracies[i]) for i in range(n_label)]),
+                0,
             )
         )
 
