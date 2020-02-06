@@ -1,63 +1,73 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 from torch.nn import Sequential
-from torchvision.models import alexnet
+from torchvision import models
 
-import torch
-from torch import nn
-import torch.nn.functional as F
-from torchvision.models import alexnet
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
 
 
 class ClassificationNet(nn.Module):
-    def __init__(self, image_size, n_classes):
-        super().__init__()
+    def __init__(self, image_size, n_classes, name="resnet34"):
+        super(ClassificationNet, self).__init__()
 
-        self.pre_net = alexnet(pretrained=True)
+        self.pre_net = getattr(models, name)(pretrained=True)
+        if name == "alexnet":
+            self.pre_net.classifier[6] = Identity()
+            self.classifier1 = nn.Sequential(
+                nn.Dropout(),
+                nn.Linear(4096, 2048),
+                nn.ReLU(inplace=True),
+                nn.Linear(2048, n_classes[0]),
+            )
+            self.classifier2 = nn.Sequential(
+                nn.Dropout(),
+                nn.Linear(4096, 2048),
+                nn.ReLU(inplace=True),
+                nn.Linear(2048, n_classes[1]),
+            )
+            self.classifier3 = nn.Sequential(
+                nn.Dropout(),
+                nn.Linear(4096, 2048),
+                nn.ReLU(inplace=True),
+                nn.Linear(2048, n_classes[2]),
+            )
+        elif name.startswith("resnet"):
+            self.pre_net.fc = Identity()
+            self.classifier1 = nn.Sequential(
+                nn.Dropout(),
+                nn.Linear(512, 256),
+                nn.ReLU(inplace=True),
+                nn.Linear(256, n_classes[0]),
+            )
+            self.classifier2 = nn.Sequential(
+                nn.Dropout(),
+                nn.Linear(512, 256),
+                nn.ReLU(inplace=True),
+                nn.Linear(256, n_classes[1]),
+            )
+            self.classifier3 = nn.Sequential(
+                nn.Dropout(),
+                nn.Linear(512, 256),
+                nn.ReLU(inplace=True),
+                nn.Linear(256, n_classes[2]),
+            )
 
         for child in self.pre_net.children():
             for param in child.parameters():
                 param.requires_grad = False
 
-        self.classifier1 = nn.Sequential(
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 2048),
-            nn.ReLU(inplace=True),
-            nn.Linear(2048, n_classes[0]),
-        )
-        self.classifier2 = nn.Sequential(
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 2048),
-            nn.ReLU(inplace=True),
-            nn.Linear(2048, n_classes[1]),
-        )
-        self.classifier3 = nn.Sequential(
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 2048),
-            nn.ReLU(inplace=True),
-            nn.Linear(2048, n_classes[2]),
-        )
-
-        for param in self.pre_net.classifier.parameters():
-            param.requires_grad = True
-
-    def forward(self, data):
-        x = data
-        x = self.pre_net.features(x)
-        x = self.pre_net.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = F.dropout(x)
-        w = self.classifier1(x)
-        y = self.classifier2(x)
-        z = self.classifier3(x)
-        return (w, y, z)
+    def forward(self, input):
+        w = self.pre_net(input)
+        x = self.classifier1(w)
+        y = self.classifier2(w)
+        z = self.classifier3(w)
+        return (x, y, z)
 
     def oneshot(model, device, data):
         model.eval()

@@ -34,7 +34,6 @@ class ClassificationDataset(Dataset):
         self.image_size = image_size
 
         df = pd.read_csv(data_csv)
-        print(len(df))
         self.transform = transform
 
         df = df[
@@ -106,6 +105,8 @@ class ClassificationDataset(Dataset):
     def __getitem__(self, index):
 
         image = self.load_image_as_tensor(self.images_id[index])
+        if self.transform:
+            image = self.transform(image)
         target = torch.tensor(self.targets[index])
 
         return image.to(device), target.to(device)

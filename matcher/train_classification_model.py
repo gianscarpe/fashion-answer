@@ -24,9 +24,10 @@ def main():
     }
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
     start_epoch = 1
-
+    normalize = transforms.Normalize(
+        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    )
     train_loader = DataLoader(
         ClassificationDataset(
             "./data/images/",
@@ -34,6 +35,7 @@ def main():
             distinguish_class=["masterCategory", "subCategory", "gender"],
             load_path=None,
             image_size=config["image_size"],
+            transform=normalize
         ),
         batch_size=config["batch_size"],
         shuffle=True,
@@ -45,6 +47,7 @@ def main():
             "./data/small_val.csv",
             distinguish_class=["masterCategory", "subCategory", "gender"],
             image_size=config["image_size"],
+            transform=normalize,
             thr=5,
         ),
         batch_size=config["batch_size"],
