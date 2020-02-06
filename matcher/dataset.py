@@ -14,6 +14,7 @@ from PIL import Image
 import torchvision.transforms.functional as TF
 from sklearn import preprocessing
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class ClassificationDataset(Dataset):
     """Dataset that on each iteration provides two random pairs of
@@ -93,7 +94,7 @@ class ClassificationDataset(Dataset):
         image = self.load_image_as_tensor(self.images_id[index])
         target = torch.tensor(self.targets[index])
 
-        return image, target
+        return image.to(device), target.to(device)
 
     def __len__(self):
         return len(self.images_id)
