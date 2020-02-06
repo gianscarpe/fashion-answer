@@ -14,16 +14,19 @@ import numpy as np
 def main():
     config = {
         "save_frequency": 2,
+        "save_best": True,
+        "classes": ["masterCategory", "subCategory", "gender"],
         "batch_size": 16,
         "lr": 0.001,
-        "num_epochs": 10,
+        "num_epochs": 50,
         "weight_decay": 0.0001,
-        "exp_base_dir": "data/exps/exp1",
+        "exp_base_dir": "data/exps/exp2",
         "image_size": [224, 224],
         "load_path": None,
     }
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
     start_epoch = 1
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -32,10 +35,10 @@ def main():
         ClassificationDataset(
             "./data/images/",
             "./data/small_train.csv",
-            distinguish_class=["masterCategory", "subCategory", "gender"],
+            distinguish_class=config["classes"],
             load_path=None,
             image_size=config["image_size"],
-            transform=normalize
+            transform=normalize,
         ),
         batch_size=config["batch_size"],
         shuffle=True,
@@ -45,7 +48,7 @@ def main():
         ClassificationDataset(
             "./data/images",
             "./data/small_val.csv",
-            distinguish_class=["masterCategory", "subCategory", "gender"],
+            distinguish_class=config["classes"],
             image_size=config["image_size"],
             transform=normalize,
             thr=5,
@@ -55,7 +58,9 @@ def main():
     )
 
     model = ClassificationNet(
-        image_size=config["image_size"], n_classes=train_loader.dataset.n_classes
+        image_size=config["image_size"],
+        n_classes=train_loader.dataset.n_classes,
+        name="resnet18",
     ).to(device)
 
     if config["load_path"]:
@@ -68,9 +73,10 @@ def main():
         model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
     )
 
+    best_accu = 0.0
     for epoch in range(start_epoch, config["num_epochs"]):
         train(model, device, train_loader, epoch, optimizer, config["batch_size"])
-        test(model, device, val_loader)
+        accuracies = test(model, device, val_loader)
         if epoch % config["save_frequency"] == 0:
             torch.save(
                 model,
@@ -78,15 +84,22 @@ def main():
                     config["exp_base_dir"], "classification_{:03}.pt".format(epoch)
                 ),
             )
+        if config["save_frequency"]:
+            accu = sum(accuracies) / len(config["classes"])
+            if accu > best_accu:
+                print("* PORCA L'OCA SAVE BEST")
+                best_accu = accu
+                torch.save(
+                    model,
+                    os.path.join(config["exp_base_dir"], "classification_best.pt"),
+                )
 
 
-def train(model, device, train_loader, epoch, optimizer, batch_size):
+def train(model, device, train_loader, epoch, optimizer, batch_size, n_classes=3):
     model.train()
     t0 = time.time()
     training_loss = []
-    criterion1 = CrossEntropyLoss()
-    criterion2 = CrossEntropyLoss()
-    criterion3 = CrossEntropyLoss()
+    criterions = [CrossEntropyLoss() for i in range(n_classes)]
     for batch_idx, (data, target) in enumerate(train_loader):
         for i in range(len(data)):
             data[i] = data[i].to(device)
@@ -94,10 +107,13 @@ def train(model, device, train_loader, epoch, optimizer, batch_size):
         optimizer.zero_grad()
         output = model(data)
         target = target.long()
-        loss1 = criterion1(torch.squeeze(output[0]), target[:, 0])
-        loss2 = criterion2(torch.squeeze(output[1]), target[:, 1])
-        loss3 = criterion3(torch.squeeze(output[2]), target[:, 2])
-        loss = (loss1 + loss2 + loss3) / 3
+        loss = sum(
+            [
+                criterions[i](torch.squeeze(output[i]), target[:, i])
+                for i in range(n_classes)
+            ]
+        )
+        loss /= n_classes
         training_loss.append(loss.item())
         loss.backward()
 
@@ -158,6 +174,7 @@ def test(model, device, test_loader, n_label=3):
                 0,
             )
         )
+        return accuracies
 
 
 if __name__ == "__main__":
