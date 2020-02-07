@@ -3,9 +3,7 @@ import time
 import json, os, sys
 import urllib
 import tempfile
-import requests
-from telegram.ext import Updater
-updater = Updater(token='TOKEN', use_context=True)
+from Bot import Bot
 
 
 def doNothing(*arg):

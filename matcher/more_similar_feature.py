@@ -16,17 +16,19 @@ def get_feature_extractor(model):
 
 if __name__ == '__main__':
     config = {
-        'input_path': 'data/images.jpg',
+        'input_path': 'data/input.jpg',
         'data_path': 'data/fashion-product-images-small/images',
         'exp_base_dir': 'data/exps/exp1',
         'image_size': [224, 224],
         'load_path': "data/exps/exp1/classification_001.pt",
         'features_path': 'data/fashion-product-images-small/features/features.npy',
         'index_path': 'data/fashion-product-images-small/features/index.pickle',
+        'segmentation_path': 'data/models/segmentation.pth'
     }
 
     fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
-                        index_path=config['index_path'])
+                        index_path=config['index_path'],
+                        segmentation_model_path=config['segmentation_path'])
 
     img_id = fm.get_k_most_similar(config['input_path'], image_size=config['image_size'])[0]
 
