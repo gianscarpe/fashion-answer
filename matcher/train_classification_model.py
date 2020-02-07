@@ -136,9 +136,7 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
             )
     print(
         "Train Epoch: {}\t time:{:.3f}s \tMeanLoss: ({})".format(
-            epoch,
-            (time.time() - t0),
-            ", ".join("{:.6f}".format(l) for l in np.average(training_loss)),
+            epoch, (time.time() - t0), "{:.6f}".format(np.average(training_loss))
         )
     )
 
