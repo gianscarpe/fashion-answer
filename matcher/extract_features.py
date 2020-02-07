@@ -29,8 +29,9 @@ if __name__ == "__main__":
         image = Image.open(image_path).convert("RGB").resize(config["image_size"])
         x = TF.to_tensor(image)
         x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        x.to(device)
         feature = model(x.unsqueeze(0))
-        features.append(feature.numpy())
+        features.append(np.array(feature.data.tolist()))
 
     np.save(os.path.join(config["save_path"], "features.npy"), features)
     print("Done")
