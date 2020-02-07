@@ -18,9 +18,13 @@ def get_handler(fm, image_size, data_path):
 
         for i in range(0, 4):
             bot.sendMessage(chat_id, f"Similarity {i}")
-            result = fm.get_k_most_similar(local_filename, image_size=image_size,
-                                           k=k, similar_type=i,
-                                           net_name="resnet")
+            result = fm.get_k_most_similar(
+                local_filename,
+                image_size=image_size,
+                k=k,
+                similar_type=i,
+                net_name="resnet",
+            )
             for r in result:
                 image_path = os.path.join(data_path, str(r))
                 bot.sendImage(chat_id, image_path, "")
@@ -31,20 +35,23 @@ def get_handler(fm, image_size, data_path):
 if __name__ == "__main__":
     bot_id = BOT_TOKEN
     config = {
-        'data_path': 'data/fashion-product-images-small/images',
-        'exp_base_dir': 'data/exps/exp1',
-        'image_size': (224, 224),
-        'load_path': "data/models/resnet18_best.pt",
-        'features_path': 'data/features/featuresresnet18.npy',
-        'index_path': 'data/features/featuresresnet18_index.pickle',
-        'segmentation_path': 'data/models/segm.pth',
+        "data_path": "data/fashion-product-images-small/images",
+        "exp_base_dir": "data/exps/exp1",
+        "image_size": (224, 224),
+        "load_path": "data/models/resnet18_best.pt",
+        "features_path": "data/features/featuresresnet18.npy",
+        "index_path": "data/features/featuresresnet18_index.pickle",
+        "segmentation_path": "data/models/segm.pth",
     }
     # ["masterCategory", "subCategory", "gender"]
 
-    fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
-                        index_path=config['index_path'],
-                        segmentation_model_path=config['segmentation_path'])
+    fm = FeatureMatcher(
+        features_path=config["features_path"],
+        model_path=config["load_path"],
+        index_path=config["index_path"],
+        segmentation_model_path=config["segmentation_path"],
+    )
 
     updater = Updater(bot_id)
-    updater.setPhotoHandler(get_handler(fm, config['image_size'], config['data_path']))
+    updater.setPhotoHandler(get_handler(fm, config["image_size"], config["data_path"]))
     updater.start()
