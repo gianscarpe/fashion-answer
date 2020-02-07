@@ -42,12 +42,12 @@ if __name__ == "__main__":
         )
 
     np.save(
-        os.path.join(config["save_path"], "features" + config["model_name"] + ".npy"),
+        os.path.join(config["save_path"], "features_" + config["model_name"] + ".npy"),
         features,
     )
     with open(
         os.path.join(
-            config["save_path"], "features" + config["model_name"] + ".pickle"
+            config["save_path"], "features_" + config["model_name"] + ".pickle"
         ),
         "wb",
     ) as f:
