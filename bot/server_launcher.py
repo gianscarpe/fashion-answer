@@ -11,16 +11,20 @@ def fileparts(fn):
 
 
 def get_handler(fm, image_size, data_path):
-    def imageHandler(bot, message, chat_id, local_filename, k=3, similar_type=1):
+    def imageHandler(bot, message, chat_id, local_filename, k=3):
         print(local_filename)
         # send message to user
         bot.sendMessage(chat_id, "Hi, please wait until the image is ready")
 
-        result = fm.get_k_most_similar(local_filename, image_size=image_size,
-                                       k=k, similar_type=similar_type)
-        for r in result:
-            image_path = os.path.join(data_path, str(r)[:-4] + ".jpg")
-            bot.sendImage(chat_id, image_path, "")
+        for i in range(0, 4):
+            bot.sendMessage(chat_id, f"Similarity {i}")
+            result = fm.get_k_most_similar(local_filename, image_size=image_size,
+                                           k=k, similar_type=i)
+            for r in result:
+                image_path = os.path.join(data_path, str(r))
+                bot.sendImage(chat_id, image_path, "")
+
+
 
     return imageHandler
 
