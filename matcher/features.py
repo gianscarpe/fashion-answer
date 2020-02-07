@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 
 
 class FeatureMatcher:
-
     def __init__(self, model_path, features_path, index_path, segmentation_model_path):
         with open(index_path, "rb") as pic:
             self.index = pickle.load(pic)
@@ -21,7 +20,6 @@ class FeatureMatcher:
         self.segmentation_model_path = segmentation_model_path
 
         # self.model.set_feature_extractor()
-
 
         t0 = time.time()
         features_matrix = np.squeeze(np.load(features_path))
@@ -33,8 +31,9 @@ class FeatureMatcher:
         set_as_feature_extractor(model)
         segmentation_model = torch.load(self.segmentation_model_path)
 
-        image = cv2.resize(cv2.cvtColor(cv2.imread(input_path), cv2.COLOR_BGR2RGB),
-                           (256, 256))
+        image = cv2.resize(
+            cv2.cvtColor(cv2.imread(input_path), cv2.COLOR_BGR2RGB), (256, 256)
+        )
 
         x = TF.to_tensor(image)
         mask = np.squeeze((segmentation_model(x.unsqueeze(0)) > 0.5).numpy())
@@ -48,7 +47,7 @@ class FeatureMatcher:
         plt.show()
         x = TF.to_tensor(out)
         feature = model(x.unsqueeze(0))
-        print('Loading features')
+        print("Loading features")
 
         t0 = time.time()
         print("Looking for ...")
