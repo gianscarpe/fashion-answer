@@ -1,6 +1,7 @@
 import torch
 import os
 from PIL import Image
+from tqdm import tqdm
 import torchvision.transforms.functional as TF
 import numpy as np
 
@@ -23,7 +24,7 @@ if __name__ == "__main__":
     images = os.listdir(config["data_path"])
     print("Extracting features")
     features = []
-    for img_id in images:
+    for img_id in tqdm(images):
         img_id = img_id[:-4]
         image_path = os.path.join(config["data_path"], str(img_id) + ".jpg")
         image = Image.open(image_path).convert("RGB").resize(config["image_size"])
