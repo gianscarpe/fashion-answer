@@ -9,7 +9,7 @@ import torch
 import numpy as np
 import segmentation_models_pytorch as smp
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class Dataset(BaseDataset):
@@ -26,16 +26,16 @@ class Dataset(BaseDataset):
     
     """
 
-    CLASSES = ['dress', 'not dress']
+    CLASSES = ["dress", "not dress"]
 
     def __init__(
-            self,
-            images_dir,
-            masks_dir,
-            classes=None,
-            augmentation=None,
-            preprocessing=None,
-            im_resize=None
+        self,
+        images_dir,
+        masks_dir,
+        classes=None,
+        augmentation=None,
+        preprocessing=None,
+        im_resize=None,
     ):
         self.ids = os.listdir(images_dir)
         self.mask_ids = os.listdir(masks_dir)
@@ -53,8 +53,10 @@ class Dataset(BaseDataset):
 
         # read data
 
-        image = cv2.resize(cv2.cvtColor(cv2.imread(self.images_fps[i]), cv2.COLOR_BGR2RGB),
-                           self.im_resize)
+        image = cv2.resize(
+            cv2.cvtColor(cv2.imread(self.images_fps[i]), cv2.COLOR_BGR2RGB),
+            self.im_resize,
+        )
 
         mask = np.load(self.masks_fps[i])
         mask = cv2.resize((mask > 0).astype("double"), self.im_resize)
@@ -62,7 +64,7 @@ class Dataset(BaseDataset):
         # apply augmentations
         if self.augmentation:
             sample = self.augmentation(image=image, mask=mask)
-            image, mask = sample['image'], sample['mask']
+            image, mask = sample["image"], sample["mask"]
 
         # apply preprocessing
         if self.preprocessing:
@@ -79,27 +81,28 @@ class Dataset(BaseDataset):
 
 """## Create model and train"""
 
-ENCODER = 'mobilenet_v2'
-ENCODER_WEIGHTS = 'imagenet'
-CLASSES = ['dress']
-ACTIVATION = 'sigmoid'  # could be None for logits or 'softmax2d' for multicalss segmentation
-DEVICE = 'cpu'
-PHOTO_DIR = 'data/fashion-product-images-small/segmentation/photos'
-ANNOTATION_DIR = 'data/fashion-product-images-small/segmentation/numpy'
+ENCODER = "mobilenet_v2"
+ENCODER_WEIGHTS = "imagenet"
+CLASSES = ["dress"]
+ACTIVATION = (
+    "sigmoid"
+)  # could be None for logits or 'softmax2d' for multicalss segmentation
+DEVICE = "cpu"
+PHOTO_DIR = "data/fashion-product-images-small/segmentation/photos"
+ANNOTATION_DIR = "data/fashion-product-images-small/segmentation/numpy"
 
 x_train_dir = os.path.join(PHOTO_DIR)
 y_train_dir = os.path.join(ANNOTATION_DIR)
 x_valid_dir = os.path.join(PHOTO_DIR)
 y_valid_dir = os.path.join(ANNOTATION_DIR)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # create segmentation model with pretrained encoder
     model = smp.Unet(
         encoder_name=ENCODER,
         encoder_weights=ENCODER_WEIGHTS,
         classes=len(CLASSES),
         activation=ACTIVATION,
-
     )
 
     # model.encoder.set_swish(memory_efficient=True)
@@ -111,7 +114,7 @@ if __name__ == '__main__':
         augmentation=None,
         preprocessing=preprocessing_fn,
         classes=CLASSES,
-        im_resize=(768, 512)
+        im_resize=(768, 512),
     )
 
     valid_dataset = Dataset(
@@ -120,7 +123,7 @@ if __name__ == '__main__':
         augmentation=None,
         preprocessing=None,
         classes=CLASSES,
-        im_resize=(768, 512)
+        im_resize=(768, 512),
     )
 
     train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)
@@ -129,15 +132,11 @@ if __name__ == '__main__':
     # IoU/Jaccard score - https://en.wikipedia.org/wiki/Jaccard_index
 
     loss = smp.utils.losses.DiceLoss()
-    metrics = [
-        smp.utils.metrics.IoU(threshold=0.5),
-    ]
+    metrics = [smp.utils.metrics.IoU(threshold=0.5)]
 
-    optimizer = torch.optim.Adam([
-        dict(params=model.parameters(), lr=0.0001),
-    ])
+    optimizer = torch.optim.Adam([dict(params=model.parameters(), lr=0.0001)])
 
-    # create epoch runners 
+    # create epoch runners
     # it is a simple loop of iterating over dataloader`s samples
     train_epoch = smp.utils.train.TrainEpoch(
         model,
@@ -148,23 +147,21 @@ if __name__ == '__main__':
         verbose=True,
     )
 
-
-
     # train model for 40 epochs
 
     max_score = 0
 
     for i in range(0, 40):
 
-        print('\nEpoch: {}'.format(i))
+        print("\nEpoch: {}".format(i))
         train_logs = train_epoch.run(train_loader)
 
         # do something (save model, change lr, etc.)
-        if max_score < train_logs['iou_score']:
-            max_score = train_logs['iou_score']
-            torch.save(model, './best_model.pth')
-            print('Model saved!')
+        if max_score < train_logs["iou_score"]:
+            max_score = train_logs["iou_score"]
+            torch.save(model, "./best_model.pth")
+            print("Model saved!")
 
         if i == 25:
-            optimizer.param_groups[0]['lr'] = 1e-5
-            print('Decrease decoder learning rate to 1e-5!')
+            optimizer.param_groups[0]["lr"] = 1e-5
+            print("Decrease decoder learning rate to 1e-5!")
