@@ -13,15 +13,16 @@ import numpy as np
 
 def main():
     config = {
+        "save_every_freq": False,
         "save_frequency": 2,
         "save_best": True,
         "classes": ["masterCategory", "subCategory", "gender"],
-        "model_name": "alexnet",
+        "model_name": "resnet34",
         "batch_size": 16,
         "lr": 0.001,
         "num_epochs": 50,
         "weight_decay": 0.0001,
-        "exp_base_dir": "data/exps/exp1",
+        "exp_base_dir": "data/exps/exp3",
         "image_size": [224, 224],
         "load_path": None,
     }
@@ -78,15 +79,16 @@ def main():
     for epoch in range(start_epoch, config["num_epochs"] + 1):
         train(model, device, train_loader, epoch, optimizer, config["batch_size"])
         accuracies = test(model, device, val_loader)
-        if epoch % config["save_frequency"] == 0:
-            torch.save(
-                model,
-                os.path.join(
-                    config["exp_base_dir"],
-                    config["model_name"] + "_{:03}.pt".format(epoch),
-                ),
-            )
-        if config["save_frequency"]:
+        if config["save_every_freq"]:
+            if epoch % config["save_frequency"] == 0:
+                torch.save(
+                    model,
+                    os.path.join(
+                        config["exp_base_dir"],
+                        config["model_name"] + "_{:03}.pt".format(epoch),
+                    ),
+                )
+        if config["save_best"]:
             accu = sum(accuracies) / len(config["classes"])
             if accu > best_accu:
                 print("* PORCA L'OCA SAVE BEST")
@@ -111,30 +113,32 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
         optimizer.zero_grad()
         output = model(data)
         target = target.long()
-        loss = sum(
-            [
-                criterions[i](torch.squeeze(output[i]), target[:, i])
-                for i in range(n_label)
-            ]
-        )
-        loss /= n_label
-        training_loss.append(loss.item())
-        loss.backward()
+        loss = [
+            criterions[i](torch.squeeze(output[i]), target[:, i])
+            for i in range(n_label)
+        ]
+        loss_items = []
+        for i in range(n_label):
+            loss_items.append(loss[i].item())
+            loss[i].backward()
 
+        training_loss.append(loss_items)
         optimizer.step()
         if batch_idx % 10 == 0:
             print(
-                "Train Epoch: {} [{}/{} ({:.0f}%)] \tBatch Loss: {:.6f}".format(
+                "Train Epoch: {} [{}/{} ({:.0f}%)] \tBatch Loss: ({})".format(
                     epoch,
                     batch_idx * batch_size,
                     len(train_loader.dataset),
                     100.0 * batch_idx * batch_size / len(train_loader.dataset),
-                    loss,
+                    ", ".join("{:.6f}".format(l.item()) for l in loss),
                 )
             )
     print(
-        "Train Epoch: {}\t time:{:.3f}s \tMeanLoss: {:.6f}".format(
-            epoch, (time.time() - t0), np.average(training_loss)
+        "Train Epoch: {}\t time:{:.3f}s \tMeanLoss: ({})".format(
+            epoch,
+            (time.time() - t0),
+            ", ".join("{:.6f}".format(l) for l in np.average(training_loss, axis=0)),
         )
     )
 
