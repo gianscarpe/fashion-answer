@@ -37,38 +37,42 @@ class FeatureMatcher:
         print("Loaded in {}s".format(time.time() - t0))
 
     def get_k_most_similar(self, input_path, image_size, k=1, device="cpu", similar_type=0,
-                           net_name="resnet"):
+                           net_name="resnet", segmentation=True):
+
         model = torch.load(self.model_path, map_location=torch.device(device))
         model.set_as_feature_extractor(name=net_name)
-        segmentation_model = torch.load(self.segmentation_model_path, map_location=torch.device(
-            device))
 
-        image = cv2.resize(cv2.cvtColor(cv2.imread(input_path),
-                                        cv2.COLOR_BGR2RGB),
-                           (256, 256))
+        image = cv2.cvtColor(cv2.imread(input_path),
+                             cv2.COLOR_BGR2RGB)
 
-        x = TF.to_tensor(image).type(torch.FloatTensor)
+        if segmentation:
+            image = cv2.resize(image, (256, 256))
+            segmentation_model = torch.load(self.segmentation_model_path, map_location=torch.device(
+                device))
 
-        mask = np.squeeze((segmentation_model(x.unsqueeze(0)) > 0.5).numpy())
+            x = TF.to_tensor(image).type(torch.FloatTensor)
 
+            mask = np.squeeze((segmentation_model(x.unsqueeze(0)) > 0.5).numpy())
+
+            plt.imshow(image)
+            mask = np.repeat(mask[:, :, np.newaxis], 3, axis=-1)
+            bg = (1 - mask).astype("uint8")
+            image = image * mask + bg * 255
+
+        image = cv2.resize(image, image_size)
         plt.imshow(image)
-        mask = np.repeat(mask[:, :, np.newaxis], 3, axis=-1)
-        bg = (1 - mask).astype("uint8")
-        out = cv2.resize(image * mask + bg * 255, image_size)
-
-        plt.imshow(out)
         plt.show()
 
-        x = TF.to_tensor(out)
-        #x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        x = TF.to_tensor(image)
+        x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
         feature = model(x.unsqueeze(0))
 
         if similar_type < 3:
             feature = feature[similar_type].detach().numpy()
         else:
-            feature = feature[0].detach().numpy() + feature[1].detach().numpy() + feature[
-                2].detach().numpy()
+            feature = np.concatenate((feature[0].detach().numpy(), feature[1].detach().numpy(),
+                                      feature[2].detach().numpy()))
 
         print('Loading features')
 
