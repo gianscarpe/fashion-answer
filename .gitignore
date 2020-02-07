@@ -1,3 +1,6 @@
+/data/*
+/data/images/*
+*.csv
 # Byte-compiled / optimized / DLL files
 .txt
 .DS_STORE
