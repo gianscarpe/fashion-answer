@@ -25,12 +25,14 @@ if __name__ == '__main__':
         'index_path': 'data/features/featuresresnet18_index.pickle',
         'segmentation_path': 'data/models/segm.pth'
     }
+    # ["masterCategory", "subCategory", "gender"]
 
     fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
                         index_path=config['index_path'],
                         segmentation_model_path=config['segmentation_path'])
 
-    img_id = fm.get_k_most_similar(config['input_path'], image_size=config['image_size'])[0]
+    img_id = fm.get_k_most_similar(config['input_path'], image_size=config['image_size'],
+                                   k=3, similar_type=1)[0]
 
     image_path = os.path.join(config['data_path'], str(img_id))
 

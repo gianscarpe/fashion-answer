@@ -11,12 +11,13 @@ def fileparts(fn):
 
 
 def get_handler(fm, image_size, data_path):
-    def imageHandler(bot, message, chat_id, local_filename, k=3):
+    def imageHandler(bot, message, chat_id, local_filename, k=3, similar_type=1):
         print(local_filename)
         # send message to user
         bot.sendMessage(chat_id, "Hi, please wait until the image is ready")
 
-        result = fm.get_k_most_similar(local_filename, image_size=image_size, k=k)
+        result = fm.get_k_most_similar(local_filename, image_size=image_size,
+                                       k=k, similar_type=similar_type)
         for r in result:
             image_path = os.path.join(data_path, str(r)[:-4] + ".jpg")
             bot.sendImage(chat_id, image_path, "")
@@ -31,10 +32,11 @@ if __name__ == "__main__":
         'exp_base_dir': 'data/exps/exp1',
         'image_size': (224, 224),
         'load_path': "data/models/resnet18_best.pt",
-        'features_path': 'data/features/features_resnet18.npy',
+        'features_path': 'data/features/featuresresnet18.npy',
         'index_path': 'data/features/featuresresnet18_index.pickle',
         'segmentation_path': 'data/models/segm.pth'
     }
+    # ["masterCategory", "subCategory", "gender"]
 
     fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
                         index_path=config['index_path'],

@@ -59,10 +59,17 @@ class FeatureMatcher:
         plt.imshow(out)
         plt.show()
 
-        out = TF.normalize(out, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-
         x = TF.to_tensor(out)
+        x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
         feature = model(x.unsqueeze(0))
+
+        if similar_type < 3:
+            feature = feature[similar_type].detach().numpy()
+        else:
+            feature = feature[0].detach().numpy() + feature[1].detach().numpy() + feature[
+                2].detach().numpy()
+
         print('Loading features')
 
         t0 = time.time()

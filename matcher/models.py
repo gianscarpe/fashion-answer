@@ -66,13 +66,10 @@ class ClassificationNet(nn.Module):
 
     def forward(self, input):
         w = self.pre_net(input)
-        if self.method == "classification":
-            x = self.classifier1(w)
-            y = self.classifier2(w)
-            z = self.classifier3(w)
-            return (x, y, z)
-        elif self.method == "features":
-            return w
+        x = self.classifier1(w)
+        y = self.classifier2(w)
+        z = self.classifier3(w)
+        return (x, y, z)
 
     def oneshot(model, device, data):
         model.eval()
@@ -90,7 +87,6 @@ class ClassificationNet(nn.Module):
         except AttributeError:
             model_name = name
         self.method = "features"
-        if model_name == "alexnet":
-            self.pre_net.classifier = Identity()
-        elif model_name.startswith("resnet"):
-            self.pre_net.fc = Identity()
+        self.classifier1[-1] = Identity()
+        self.classifier2[-1] = Identity()
+        self.classifier3[-1] = Identity()
