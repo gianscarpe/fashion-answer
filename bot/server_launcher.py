@@ -18,7 +18,7 @@ def get_handler(fm, image_size, data_path):
 
         result = fm.get_k_most_similar(local_filename, image_size=image_size, k=k)
         for r in result:
-            image_path = os.path.join(data_path, str(r) + ".jpg")
+            image_path = os.path.join(data_path, str(r)[:-4] + ".jpg")
             bot.sendImage(chat_id, image_path, "")
 
     return imageHandler
@@ -30,9 +30,9 @@ if __name__ == "__main__":
         'data_path': 'data/fashion-product-images-small/images',
         'exp_base_dir': 'data/exps/exp1',
         'image_size': (224, 224),
-        'load_path': "data/exps/exp1/classification_001.pt",
-        'features_path': 'data/fashion-product-images-small/features/features.npy',
-        'index_path': 'data/fashion-product-images-small/features/index.pickle',
+        'load_path': "data/models/resnet18_best.pt",
+        'features_path': 'data/features/features_resnet18.npy',
+        'index_path': 'data/features/featuresresnet18_index.pickle',
         'segmentation_path': 'data/models/segm.pth'
     }
 

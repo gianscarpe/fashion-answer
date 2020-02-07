@@ -19,11 +19,11 @@ if __name__ == '__main__':
         'input_path': 'data/input.jpg',
         'data_path': 'data/fashion-product-images-small/images',
         'exp_base_dir': 'data/exps/exp1',
-        'image_size': [224, 224],
-        'load_path': "data/exps/exp1/classification_001.pt",
-        'features_path': 'data/fashion-product-images-small/features/features.npy',
-        'index_path': 'data/fashion-product-images-small/features/index.pickle',
-        'segmentation_path': 'data/models/segmentation.pth'
+        'image_size': (224, 224),
+        'load_path': "data/models/resnet18_best.pt",
+        'features_path': 'data/features/featuresresnet18.npy',
+        'index_path': 'data/features/featuresresnet18_index.pickle',
+        'segmentation_path': 'data/models/segm.pth'
     }
 
     fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     img_id = fm.get_k_most_similar(config['input_path'], image_size=config['image_size'])[0]
 
-    image_path = os.path.join(config['data_path'], str(img_id) + ".jpg")
+    image_path = os.path.join(config['data_path'], str(img_id))
 
     image = Image.open(image_path).convert('RGB').resize(config['image_size'])
     image.show()
