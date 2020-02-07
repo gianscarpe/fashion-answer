@@ -31,7 +31,7 @@ class FeatureMatcher:
         self.f1 = features[:, 0, :]
         self.f2 = features[:, 1, :]
         self.f3 = features[:, 2, :]
-        self.tot = self.f1 + self.f2 + self.f3
+        self.tot = np.concatenate((self.f1, self.f2, self.f3))
 
         self.trees = [KDTree(self.f1), KDTree(self.f2), KDTree(self.f3), KDTree(self.tot)]
         print("Loaded in {}s".format(time.time() - t0))
@@ -42,11 +42,10 @@ class FeatureMatcher:
         model = torch.load(self.model_path, map_location=torch.device(device))
         model.set_as_feature_extractor(name=net_name)
 
-        image = cv2.cvtColor(cv2.imread(input_path),
-                             cv2.COLOR_BGR2RGB)
+        image = Image.open(input_path).convert("RGB")
 
         if segmentation:
-            image = cv2.resize(image, (256, 256))
+            image = cv2.resize(np.asarray(image), (256, 256))
             segmentation_model = torch.load(self.segmentation_model_path, map_location=torch.device(
                 device))
 
@@ -54,14 +53,12 @@ class FeatureMatcher:
 
             mask = np.squeeze((segmentation_model(x.unsqueeze(0)) > 0.5).numpy())
 
-            plt.imshow(image)
             mask = np.repeat(mask[:, :, np.newaxis], 3, axis=-1)
             bg = (1 - mask).astype("uint8")
-            image = image * mask + bg * 255
+            image = Image.fromarray(image * mask + bg * 255)
 
-        image = cv2.resize(image, image_size)
-        plt.imshow(image)
-        plt.show()
+        image = image.resize(image_size)
+        #image.show()
 
         x = TF.to_tensor(image)
         x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
