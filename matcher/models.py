@@ -13,9 +13,11 @@ class Identity(nn.Module):
 
 
 class ClassificationNet(nn.Module):
-    def __init__(self, image_size, n_classes, name="resnet34"):
+    def __init__(self, image_size, n_classes, name="resnet34", method="classification"):
         super(ClassificationNet, self).__init__()
 
+        self.name = name
+        self.method = method
         self.pre_net = getattr(models, name)(pretrained=True)
         if name == "alexnet":
             self.pre_net.classifier[6] = Identity()
@@ -64,10 +66,13 @@ class ClassificationNet(nn.Module):
 
     def forward(self, input):
         w = self.pre_net(input)
-        x = self.classifier1(w)
-        y = self.classifier2(w)
-        z = self.classifier3(w)
-        return (x, y, z)
+        if self.method == "classification":
+            x = self.classifier1(w)
+            y = self.classifier2(w)
+            z = self.classifier3(w)
+            return (x, y, z)
+        elif self.method == "features":
+            return w
 
     def oneshot(model, device, data):
         model.eval()
@@ -79,53 +84,13 @@ class ClassificationNet(nn.Module):
             output = model(data)
             return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
 
-    def set_as_feature_extractor(self):
-        self.pre_net.classifier = Sequential()
-
-
-class SiameseNet(nn.Module):
-    def __init__(self, image_size):
-        super().__init__()
-
-        self.pre_net = alexnet(pretrained=True)
-        for child in self.pre_net.children():
-            for param in child.parameters():
-                param.requires_grad = False
-
-        self.pre_net.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(256 * 6 * 6, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 32),
-            nn.ReLU(inplace=True),
-        )
-        for param in self.pre_net.classifier.parameters():
-            param.requires_grad = True
-
-        self.classifier = nn.Linear(32, 1)
-
-    def forward(self, data):
-        res = []
-        for i in range(2):  # Siamese nets; sharing weights
-            x = data[:, i]
-            x = self.pre_net(x)
-            res.append(x)
-
-        res = torch.abs(res[1] - res[0])
-        res = self.classifier(res)
-        return res
-
-    def oneshot(model, device, data):
-        model.eval()
-
-        with torch.no_grad():
-            for i in range(len(data)):
-                data[i] = data[i].to(device)
-
-            output = model(data)
-            return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
-
-
-def set_as_feature_extractor(model):
-    model.pre_net.classifier = Sequential()
+    def set_as_feature_extractor(self, name="alexnet"):
+        try:
+            model_name = self.name
+        except AttributeError:
+            model_name = name
+        self.method = "features"
+        if model_name == "alexnet":
+            self.pre_net.classifier = Identity()
+        elif model_name.startswith("resnet"):
+            self.pre_net.fc = Identity()
