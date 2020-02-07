@@ -17,7 +17,7 @@ def main():
         "save_frequency": 2,
         "save_best": True,
         "classes": ["masterCategory", "subCategory", "gender"],
-        "model_name": "resnet34",
+        "model_name": "resnet18",
         "batch_size": 16,
         "lr": 0.001,
         "num_epochs": 50,
@@ -131,7 +131,7 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
                     batch_idx * batch_size,
                     len(train_loader.dataset),
                     100.0 * batch_idx * batch_size / len(train_loader.dataset),
-                    ", ".join("{:.6f}".format(loss.item())),
+                    "{:.6f}".format(loss.item()),
                 )
             )
     print(
