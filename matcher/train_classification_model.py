@@ -112,16 +112,17 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
         optimizer.zero_grad()
         output = model(data)
         target = target.long()
-        loss = [
-            criterions[i](torch.squeeze(output[i]), target[:, i])
-            for i in range(n_label)
-        ]
-        loss_items = []
+        loss = 0
         for i in range(n_label):
-            loss_items.append(loss[i].item())
-            loss[i].backward()
+            loss = loss + criterions[i](torch.squeeze(output[i]), target[:, i])
 
-        training_loss.append(loss_items)
+        loss.backward()
+        # loss_items = []
+        # for i in range(n_label):
+        #     loss_items.append(loss[i].item())
+        #     loss[i].backward()
+
+        training_loss.append(loss.item())
         optimizer.step()
         if batch_idx % 10 == 0:
             print(
@@ -130,14 +131,14 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
                     batch_idx * batch_size,
                     len(train_loader.dataset),
                     100.0 * batch_idx * batch_size / len(train_loader.dataset),
-                    ", ".join("{:.6f}".format(l.item()) for l in loss),
+                    ", ".join("{:.6f}".format(loss.item())),
                 )
             )
     print(
         "Train Epoch: {}\t time:{:.3f}s \tMeanLoss: ({})".format(
             epoch,
             (time.time() - t0),
-            ", ".join("{:.6f}".format(l) for l in np.average(training_loss, axis=0)),
+            ", ".join("{:.6f}".format(l) for l in np.average(training_loss)),
         )
     )
 
