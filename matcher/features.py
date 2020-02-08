@@ -6,22 +6,26 @@ from sklearn.neighbors import KDTree
 import numpy as np
 import torchvision.transforms.functional as TF
 import cv2
-from matplotlib import pyplot as plt
 import segmentation_models_pytorch as smp
-from sklearn.neighbors import DistanceMetric
-from compact_bilinear_pooling import CountSketch, CompactBilinearPooling
+from compact_bilinear_pooling import CompactBilinearPooling
 
 
 class FeatureMatcher:
-
-    def __init__(self, model_path, features_path, index_path, segmentation_model_path,
-                 segmentation_model_name="efficientnet-b2"):
+    def __init__(
+        self,
+        model_path,
+        features_path,
+        index_path,
+        segmentation_model_path,
+        segmentation_model_name="efficientnet-b2",
+    ):
         with open(index_path, "rb") as pic:
             self.index = pickle.load(pic)
 
         print("Loading model")
-        self.preprocessing_fn = smp.encoders.get_preprocessing_fn(segmentation_model_name,
-                                                                  "imagenet")
+        self.preprocessing_fn = smp.encoders.get_preprocessing_fn(
+            segmentation_model_name, "imagenet"
+        )
 
         self.model_path = model_path
         self.segmentation_model_path = segmentation_model_path
@@ -42,8 +46,12 @@ class FeatureMatcher:
 
         self.tot = self.mcb(x, y).numpy()
 
-        self.trees = [KDTree(self.f1), KDTree(self.f2),
-                      KDTree(self.f3), KDTree(self.tot)]
+        self.trees = [
+            KDTree(self.f1),
+            KDTree(self.f2),
+            KDTree(self.f3),
+            KDTree(self.tot),
+        ]
         print("Loaded in {}s".format(time.time() - t0))
 
     def classify(self, image, image_size, device="cpu", segmentation=True):
@@ -61,8 +69,9 @@ class FeatureMatcher:
     def segment_image(self, image, device="cpu"):
 
         image = cv2.resize(np.asarray(image), (256, 256))
-        segmentation_model = torch.load(self.segmentation_model_path, map_location=torch.device(
-            device))
+        segmentation_model = torch.load(
+            self.segmentation_model_path, map_location=torch.device(device)
+        )
 
         x = TF.to_tensor(image).type(torch.FloatTensor)
 
@@ -74,8 +83,9 @@ class FeatureMatcher:
         image.show()
         return image
 
-    def get_k_most_similar(self, image, image_size, k=1, device="cpu", similar_type=0,
-                           net_name="resnet"):
+    def get_k_most_similar(
+        self, image, image_size, k=1, device="cpu", similar_type=0, net_name="resnet"
+    ):
 
         model = torch.load(self.model_path, map_location=torch.device(device))
 
@@ -95,7 +105,7 @@ class FeatureMatcher:
 
             feature = self.mcb(feature[1], feature[2]).detach().numpy()
 
-        print('Loading features')
+        print("Loading features")
 
         t0 = time.time()
         print("Looking for ...")
