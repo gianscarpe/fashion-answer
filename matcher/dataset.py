@@ -27,6 +27,7 @@ class ClassificationDataset(Dataset):
         thr=50,
         load_path=None,
         load_in_ram=False,
+        label_encoder=None
     ):
         if not self._check_exists(data_csv, data_path):
             raise RuntimeError("Dataset not found")
@@ -73,13 +74,19 @@ class ClassificationDataset(Dataset):
             print(df[distinguish_class].shape)
             self.targets = np.zeros(df[distinguish_class].shape)
             self.n_classes = []
+            if label_encoder:
+                self.les = label_encoder
             for col, distinguish_cls in enumerate(distinguish_class):
                 targets = df[distinguish_cls].values
                 self.n_classes.append(len(np.unique(targets)))
-                le = preprocessing.LabelEncoder()
-                le.fit(targets)
-                self.targets[:, col] = le.transform(targets)
-                self.les.append(le)
+                if not label_encoder:
+                    le = preprocessing.LabelEncoder()
+                    le.fit(targets)
+                    self.targets[:, col] = le.transform(targets)
+                    self.les.append(le)
+                else:
+                    self.targets[:, col] = self.les[col].transform(targets)
+
         print(self.targets, self.n_classes)
 
         if load_in_ram:
