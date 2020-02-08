@@ -32,7 +32,7 @@ if __name__ == '__main__':
                         segmentation_model_path=config['segmentation_path'])
 
     result = fm.get_k_most_similar(config['input_path'], image_size=config['image_size'],
-                                   k=10, similar_type=0, segmentation=False)
+                                   k=10, similar_type=0, segmentation=True)
 
     for r in result:
         image_path = os.path.join(config['data_path'], str(r))
