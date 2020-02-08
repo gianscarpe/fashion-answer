@@ -8,29 +8,31 @@ import requests
 
 # import re, hashlib
 
+
 class Bot:
     def __init__(self, bot_id, download_folder=tempfile.gettempdir() + os.sep):
         self.bot_id = bot_id
         self.base_url = "https://api.telegram.org/bot" + bot_id + "/"
         self.file_url = "https://api.telegram.org/file/bot" + bot_id + "/"
         self.max_update_id = 0
-        self.encoding = 'utf-8'
+        self.encoding = "utf-8"
         self.download_folder = download_folder
 
     def query(self, page, params):
-        response = urllib.request.urlopen(self.base_url + page,
-                                          urllib.parse.urlencode(params).encode(self.encoding))
+        response = urllib.request.urlopen(
+            self.base_url + page, urllib.parse.urlencode(params).encode(self.encoding)
+        )
         return json.loads(response.read().decode(self.encoding))
 
     def getMessageType(self, message):
-        if 'photo' in message:
-            return 'photo'
-        if 'voice' in message:
-            return 'voice'
-        if 'document' in message:
-            return 'document'
-        if 'text' in message:
-            return 'text'
+        if "photo" in message:
+            return "photo"
+        if "voice" in message:
+            return "voice"
+        if "document" in message:
+            return "document"
+        if "text" in message:
+            return "text"
 
     def sendMessage(self, chat_id, text):
         return self.query("sendMessage", {"chat_id": chat_id, "text": text})
@@ -39,9 +41,9 @@ class Bot:
         # http://docs.python-requests.org/en/latest/user/quickstart/
         if os.path.isfile(image_path):
             print("sto inviando l'immagine: " + image_path)
-            url = self.base_url + 'sendPhoto'
-            files = {'photo': open(image_path, 'rb')}
-            data = {'caption': caption, "chat_id": chat_id}
+            url = self.base_url + "sendPhoto"
+            files = {"photo": open(image_path, "rb")}
+            data = {"caption": caption, "chat_id": chat_id}
             r = requests.post(url, files=files, data=data)
         else:
             print("Immagine non trovata: " + image_path)
@@ -50,8 +52,8 @@ class Bot:
         # http://docs.python-requests.org/en/latest/user/quickstart/
         if os.path.isfile(doc_path):
             print("sto inviando il documento: " + doc_path)
-            url = self.base_url + 'sendDocument'
-            files = {'document': open(doc_path, 'rb')}
+            url = self.base_url + "sendDocument"
+            files = {"document": open(doc_path, "rb")}
             data = {"chat_id": chat_id}
             r = requests.post(url, files=files, data=data)
             # print(r.text)
@@ -59,11 +61,11 @@ class Bot:
             print("Documento non trovato: " + doc_path)
 
     def getFileDetails(self, file_id):
-        file_details = self.query('getFile', {"file_id": file_id})
+        file_details = self.query("getFile", {"file_id": file_id})
         # print(file_details)
         # file_path, filename, ext
-        file_url = self.file_url + file_details['result']['file_path']
-        file_name = os.path.basename(file_details['result']['file_path'])
+        file_url = self.file_url + file_details["result"]["file_path"]
+        file_name = os.path.basename(file_details["result"]["file_path"])
         file_ext = os.path.splitext(file_name)[1]
         return file_url, file_name, file_ext
 
@@ -82,8 +84,8 @@ class Bot:
         # get updates
         data = self.query("getUpdates", {"offset": update_id})
         # update max_update_id
-        for r in data['result']:
-            if r['update_id'] > self.max_update_id:
-                self.max_update_id = r['update_id']
+        for r in data["result"]:
+            if r["update_id"] > self.max_update_id:
+                self.max_update_id = r["update_id"]
         # return updates
-        return data['result']
+        return data["result"]
