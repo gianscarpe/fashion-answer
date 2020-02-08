@@ -92,7 +92,7 @@ def main():
         if config["save_every_freq"]:
             if epoch % config["save_frequency"] == 0:
                 torch.save(
-                    model,
+                    model.state_dict(),
                     os.path.join(
                         config["exp_base_dir"],
                         config["model_name"] + "_{:03}.pt".format(epoch),
@@ -104,7 +104,7 @@ def main():
                 print("* PORCA L'OCA SAVE BEST")
                 best_accu = accu
                 torch.save(
-                    model,
+                    model.state_dict(),
                     os.path.join(
                         config["exp_base_dir"], config["model_name"] + "_best.pt"
                     ),
