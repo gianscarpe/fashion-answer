@@ -13,11 +13,11 @@ import numpy as np
 
 def main():
     config = {
-        "phase": "1",
+        "phase": "2",
         "save_every_freq": False,
         "save_frequency": 2,
         "save_best": True,
-        "classes": ["masterCategory"],  # , "subCategory"
+        "classes": ["subCategory"],  # subCategory masterCategory
         "model_name": "resnet18",
         "batch_size": 16,
         "lr": 0.001,
@@ -66,15 +66,22 @@ def main():
             name=config["model_name"],
         )
         model.phase1()
-
-    if config["load_path"]:
-        print("Loading and evaluating model")
-        start_epoch = int(config["load_path"][-6:-3])
-        model = torch.load(config["load_path"])
-        test(model, device, val_loader)
+    elif config["phase"] == "2":
+        model = TwoPhaseNet(
+            image_size=config["image_size"],
+            n_classes_phase1=6,
+            n_classes_phase2=43,
+            name=config["model_name"],
+        )
+        pretrained_dict = torch.load("data/exps/exp3/resnet18_best.pt")
+        model_dict = model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(pretrained_dict)
+        model.phase2("")
 
     optimizer = optim.Adam(
-        model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
+        model.parameters(), lr=0.001, weight_decay=config["weight_decay"]
     )
 
     best_accu = 0.0
@@ -88,7 +95,7 @@ def main():
             config["batch_size"],
             n_label=1,
         )
-        accuracies = test(model, device, val_loader, n_label=1)
+        accuracy = test(model, device, val_loader, n_label=1)
         if config["save_every_freq"]:
             if epoch % config["save_frequency"] == 0:
                 torch.save(
@@ -99,20 +106,21 @@ def main():
                     ),
                 )
         if config["save_best"]:
-            accu = sum(accuracies) / len(config["classes"])
-            if accu > best_accu:
+            if accuracy > best_accu:
                 print("* PORCA L'OCA SAVE BEST")
-                best_accu = accu
+                best_accu = accuracy
                 torch.save(
                     model.state_dict(),
                     os.path.join(
-                        config["exp_base_dir"], config["model_name"] + "_best.pt"
+                        config["exp_base_dir"],
+                        config["model_name"] + "_phase" + config["phase"] + "_best.pt",
                     ),
                 )
 
 
 def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
     model.train()
+    model.to(device)
     t0 = time.time()
     training_loss = []
     criterions = [CrossEntropyLoss() for i in range(n_label)]
@@ -122,7 +130,7 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
 
         optimizer.zero_grad()
         output = model(data)
-        target = target.long()
+        target = target.long().to(device)
         loss = 0
         for i in range(n_label):
             loss = loss + criterions[i](torch.squeeze(output), target[:, 0])
@@ -154,47 +162,37 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
 
 def test(model, device, test_loader, n_label=3):
     model.eval()
-
+    model.to(device)
     with torch.no_grad():
         accurate_labels = 0
         all_labels = 0
-        val_loss = []
-        accurate_labels = [0, 0, 0]
-        accuracies = [0, 0, 0]
+        val_loss = 0
         for batch_idx, (data, target) in enumerate(test_loader):
             for i in range(len(data)):
                 data[i] = data[i].to(device)
 
             output = model(data)
-            target = target.long()
-            val_loss.append(
-                [
-                    F.cross_entropy(torch.squeeze(output[i]), target[:, i])
-                    for i in range(n_label)
-                ]
+            target = target.long().to(device)
+            val_loss = (
+                val_loss + F.cross_entropy(torch.squeeze(output), target[:, 0]).item()
             )
 
-            for i in range(n_label):
-                accurate_labels[i] += torch.sum(
-                    (torch.argmax(F.softmax(output[i]), dim=1) == target[:, i])
-                )
+            accurate_labels += torch.sum(
+                (torch.argmax(F.softmax(output), dim=1) == target[:, 0])
+            )
 
             all_labels += len(target)
 
-        for i in range(n_label):
-            accuracies[i] = 100.0 * accurate_labels[i].item() / all_labels
+        accuracy = 100.0 * accurate_labels.item() / all_labels
         print(
             "Test accuracy: ({})/{} ({}), Loss: ({})".format(
-                ", ".join([str(accurate_labels[i].item()) for i in range(n_label)]),
+                str(accurate_labels.item()),
                 all_labels,
-                ", ".join(["{:.3f}%".format(accuracies[i]) for i in range(n_label)]),
-                ", ".join(
-                    "{:.6f}".format(loss)
-                    for loss in torch.mean(torch.tensor(val_loss), dim=0).data.tolist()
-                ),
+                "{:.3f}%".format(accuracy),
+                "{:.6f}".format(val_loss / all_labels),
             )
         )
-        return accuracies
+        return accuracy
 
 
 if __name__ == "__main__":

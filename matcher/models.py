@@ -45,7 +45,7 @@ class TwoPhaseNet(nn.Module):
             nn.Linear(256, self.n_classes_phase1),
         )
 
-    def phase2(self, model_path):
+    def phase2(self):
         for child in self.pre_net.children():
             for param in child.parameters():
                 param.requires_grad = True
