@@ -3,6 +3,7 @@ import os
 import pickle
 from PIL import Image
 from tqdm import tqdm
+from matcher.models import TwoPhaseNet
 import torchvision.transforms.functional as TF
 import numpy as np
 
@@ -10,15 +11,28 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config = {
+        "two_phase": True,
         "data_path": "data/images",
-        "model_name": "resnet18",
-        "n_label": 3,
+        "model_name": "resnet18_phase1",
+        "n_label": 1,
         "image_size": [224, 224],
         "load_path": "../drive/My Drive/fashion-answer/data/models/resnet18_best.pt",
         "save_path": "../drive/My Drive/fashion-answer/data/features",
     }
 
-    if config["load_path"]:
+    if config["two_phase"]:
+        model = TwoPhaseNet(
+            image_size=config["image_size"],
+            n_classes_phase1=6,
+            n_classes_phase2=43,
+            name=config["model_name"],
+        )
+        pretrained_dict = torch.load("data/exps/exp3/resnet18_phase1_best.pt")
+        model_dict = model.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(pretrained_dict)
+    elif config["load_path"]:
         print("Loading model")
         model = torch.load(config["load_path"], map_location=device)
         model.eval()
