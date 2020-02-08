@@ -6,22 +6,29 @@ from sklearn.neighbors import KDTree
 import numpy as np
 import torchvision.transforms.functional as TF
 import cv2
-from matplotlib import pyplot as plt
 import segmentation_models_pytorch as smp
-from sklearn.neighbors import DistanceMetric
-from compact_bilinear_pooling import CountSketch, CompactBilinearPooling
+from compact_bilinear_pooling import CompactBilinearPooling
 
 
 class FeatureMatcher:
 
     def __init__(self, model_path, features_path, index_path, segmentation_model_path,
                  segmentation_model_name="efficientnet-b2", device="cpu"):
+    def __init__(
+        self,
+        model_path,
+        features_path,
+        index_path,
+        segmentation_model_path,
+        segmentation_model_name="efficientnet-b2",
+    ):
         with open(index_path, "rb") as pic:
             self.index = pickle.load(pic)
 
         print("Loading model")
-        self.preprocessing_fn = smp.encoders.get_preprocessing_fn(segmentation_model_name,
-                                                                  "imagenet")
+        self.preprocessing_fn = smp.encoders.get_preprocessing_fn(
+            segmentation_model_name, "imagenet"
+        )
 
         self.model_path = model_path
         self.segmentation_model_path = segmentation_model_path
@@ -46,8 +53,12 @@ class FeatureMatcher:
 
         self.tot = self.mcb(x, y).numpy()
 
-        self.trees = [KDTree(self.f1), KDTree(self.f2),
-                      KDTree(self.f3), KDTree(self.tot)]
+        self.trees = [
+            KDTree(self.f1),
+            KDTree(self.f2),
+            KDTree(self.f3),
+            KDTree(self.tot),
+        ]
         print("Loaded in {}s".format(time.time() - t0))
 
     def classify(self, image, image_size, device="cpu", segmentation=True):

@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import Sequential
 from torchvision import models
 
 
@@ -9,6 +8,57 @@ class Identity(nn.Module):
         super(Identity, self).__init__()
 
     def forward(self, x):
+        return x
+
+
+class TwoPhaseNet(nn.Module):
+    def __init__(
+        self, image_size, n_classes_phase1, n_classes_phase2, phase="1", name="resnet34"
+    ):
+        super(TwoPhaseNet, self).__init__()
+
+        self.image_size = image_size
+        self.n_classes_phase1 = n_classes_phase1
+        self.n_classes_phase2 = n_classes_phase2
+        self.phase = phase
+        resnet_num = name.split("resnet")[1]
+        if resnet_num != "18" and resnet_num != "34":
+            raise Exception("Only resnet18 and resnet34 are supported")
+        self.name = name
+        self.pre_net = getattr(models, name)(pretrained=True)
+        self.pre_net.fc = Identity()
+        self.features = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, 512),
+            nn.ReLU(inplace=True),
+        )
+        self.classifier = Identity()
+
+    def phase1(self):
+        for child in self.pre_net.children():
+            for param in child.parameters():
+                param.requires_grad = False
+        self.classifier = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Linear(256, self.n_classes_phase1),
+        )
+
+    def phase2(self):
+        for child in self.pre_net.children():
+            for param in child.parameters():
+                param.requires_grad = True
+        self.classifier = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Linear(256, self.n_classes_phase2),
+        )
+
+    def forward(self, x):
+        x = self.pre_net(x)
+        x = self.features(x)
+        x = self.classifier(x)
         return x
 
 
