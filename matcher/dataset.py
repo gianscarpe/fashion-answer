@@ -58,6 +58,7 @@ class ClassificationDataset(Dataset):
         df.reset_index(inplace=True)
         self.images_id = df["id"].values
         self.images = None
+        self.les = []
 
         print("Building classification dataset ")
         if load_path:
@@ -78,6 +79,7 @@ class ClassificationDataset(Dataset):
                 le = preprocessing.LabelEncoder()
                 le.fit(targets)
                 self.targets[:, col] = le.transform(targets)
+                self.les.append(le)
         print(self.targets, self.n_classes)
 
         if load_in_ram:

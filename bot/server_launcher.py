@@ -44,9 +44,9 @@ if __name__ == "__main__":
         'data_path': 'data/fashion-product-images-small/images',
         'exp_base_dir': 'data/exps/exp1',
         'image_size': (224, 224),
-        'load_path': "data/models/alexnet_best.pt",
-        'features_path': 'data/features/featuresalexnet.npy',
-        'index_path': 'data/features/featuresalexnet.pickle',
+        'load_path': "data/models/resnet18_best.pt",
+        'features_path': 'data/features/featuresresnet18.npy',
+        'index_path': 'data/features/featuresresnet18_index.pickle',
         'segmentation_path': 'data/models/segm.pth',
 
     }
