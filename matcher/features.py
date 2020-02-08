@@ -14,14 +14,6 @@ class FeatureMatcher:
 
     def __init__(self, model_path, features_path, index_path, segmentation_model_path,
                  segmentation_model_name="efficientnet-b2", device="cpu"):
-    def __init__(
-        self,
-        model_path,
-        features_path,
-        index_path,
-        segmentation_model_path,
-        segmentation_model_name="efficientnet-b2",
-    ):
         with open(index_path, "rb") as pic:
             self.index = pickle.load(pic)
 
