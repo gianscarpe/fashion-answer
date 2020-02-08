@@ -2,7 +2,7 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 from torchvision import transforms
-from matcher.models import ClassificationNet, TwoPhaseNet
+from matcher.models import TwoPhaseNet
 from matcher.dataset import ClassificationDataset
 from torch.utils.data import DataLoader
 from torch.nn import CrossEntropyLoss
@@ -125,12 +125,11 @@ def train(model, device, train_loader, epoch, optimizer, batch_size, n_label=3):
     training_loss = []
     criterions = [CrossEntropyLoss() for i in range(n_label)]
     for batch_idx, (data, target) in enumerate(train_loader):
-        for i in range(len(data)):
-            data[i] = data[i].to(device)
+        data = data.to(device)
+        target = target.long().to(device)
 
         optimizer.zero_grad()
         output = model(data)
-        target = target.long().to(device)
         loss = 0
         for i in range(n_label):
             loss = loss + criterions[i](torch.squeeze(output), target[:, 0])
@@ -168,11 +167,10 @@ def test(model, device, test_loader, n_label=3):
         all_labels = 0
         val_loss = 0
         for batch_idx, (data, target) in enumerate(test_loader):
-            for i in range(len(data)):
-                data[i] = data[i].to(device)
+            data = data.to(device)
+            target = target.long().to(device)
 
             output = model(data)
-            target = target.long().to(device)
             val_loss = (
                 val_loss + F.cross_entropy(torch.squeeze(output), target[:, 0]).item()
             )
