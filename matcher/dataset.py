@@ -27,7 +27,7 @@ class ClassificationDataset(Dataset):
         thr=50,
         load_path=None,
         load_in_ram=False,
-        label_encoder=None
+        label_encoder=None,
     ):
         if not self._check_exists(data_csv, data_path):
             raise RuntimeError("Dataset not found")
@@ -36,17 +36,29 @@ class ClassificationDataset(Dataset):
 
         df = pd.read_csv(data_csv)
         self.transform = transform
-
-        df = df[
-            df.apply(
-                lambda x: all(
-                    x[distinguish_cls] is not None
-                    for distinguish_cls in distinguish_class
+        if label_encoder:
+            df = df[
+                df.apply(
+                    lambda x: all(
+                        x[distinguish_cls] is not None
+                        and x[distinguish_cls] in label_encoder[col].classes_
+                        for col, distinguish_cls in enumerate(distinguish_class)
+                    )
+                    and os.path.exists(os.path.join(data_path, str(x["id"]) + ".jpg")),
+                    axis=1,
                 )
-                and os.path.exists(os.path.join(data_path, str(x["id"]) + ".jpg")),
-                axis=1,
-            )
-        ]
+            ]
+        else:
+            df = df[
+                df.apply(
+                    lambda x: all(
+                        x[distinguish_cls] is not None
+                        for distinguish_cls in distinguish_class
+                    )
+                    and os.path.exists(os.path.join(data_path, str(x["id"]) + ".jpg")),
+                    axis=1,
+                )
+            ]
         df.dropna(inplace=True)
         print(df[distinguish_class])
         # vc = df[distinguish_class].value_counts()

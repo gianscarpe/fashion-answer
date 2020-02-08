@@ -21,6 +21,15 @@ def main():
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
+    train_dataset = ClassificationDataset(
+        "./data/images",
+        "./data/small_train.csv",
+        distinguish_class=config["classes"],
+        image_size=config["image_size"],
+        transform=normalize,
+        thr=5,
+    )
+
     test_loader = DataLoader(
         ClassificationDataset(
             "./data/images",
@@ -29,6 +38,7 @@ def main():
             image_size=config["image_size"],
             transform=normalize,
             thr=5,
+            label_encoder=train_dataset.les
         ),
         batch_size=config["batch_size"],
         shuffle=False,
