@@ -20,10 +20,10 @@ def main():
         "classes": ["subCategory"],  # subCategory masterCategory
         "model_name": "resnet18",
         "batch_size": 16,
-        "lr": 0.001,
-        "num_epochs": 5,
+        "lr": 0.0001,
+        "num_epochs": 30,
         "weight_decay": 0.0001,
-        "exp_base_dir": "data/exps/exp3",
+        "exp_base_dir": "data/exps/",
         "image_size": [224, 224],
         "load_path": None,
     }
@@ -34,15 +34,13 @@ def main():
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
 
-    train_dataset = (
-        ClassificationDataset(
-            "./data/images/",
-            "./data/small_train.csv",
-            distinguish_class=config["classes"],
-            load_path=None,
-            image_size=config["image_size"],
-            transform=normalize,
-        ),
+    train_dataset = ClassificationDataset(
+        "./data/images/",
+        "./data/small_train.csv",
+        distinguish_class=config["classes"],
+        load_path=None,
+        image_size=config["image_size"],
+        transform=normalize,
     )
     train_loader = DataLoader(
         train_dataset, batch_size=config["batch_size"], shuffle=True
@@ -55,7 +53,7 @@ def main():
             image_size=config["image_size"],
             transform=normalize,
             thr=5,
-            label_encoder=train_dataset.les
+            label_encoder=train_dataset.les,
         ),
         batch_size=config["batch_size"],
         shuffle=True,
@@ -75,7 +73,7 @@ def main():
             n_classes_phase2=43,
             name=config["model_name"],
         )
-        pretrained_dict = torch.load("data/exps/exp3/resnet18_phase1_best.pt")
+        pretrained_dict = torch.load("data/exps/resnet18_phase1_best.pt")
         model_dict = model.state_dict()
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
         model_dict.update(pretrained_dict)
@@ -83,7 +81,7 @@ def main():
         model.phase2()
 
     optimizer = optim.Adam(
-        model.parameters(), lr=0.001, weight_decay=config["weight_decay"]
+        model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"]
     )
 
     best_accu = 0.0
