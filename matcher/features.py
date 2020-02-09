@@ -72,24 +72,22 @@ class FeatureMatcher:
             n_classes_phase2=43,
             name="resnet18",
         )
-
-
+        self.feature_extractor.phase2()
+        self.feature_extractor.load_state_dict(
+            torch.load(phase2_params_path, map_location=torch.device("cpu"))
+        )
+        self.feature_extractor.classifier = Identity()
+        print(self.feature_extractor)
+        
         self.phase1.eval()
         self.phase2.eval()
         self.feature_extractor.eval()
-
-        self.feature_extractor.to("cpu")
-        pretrained_dict = torch.load(phase2_params_path, map_location=torch.device('cpu'))
-        model_dict = self.feature_extractor.state_dict()
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        model_dict.update(pretrained_dict)
-        self.feature_extractor.load_state_dict(pretrained_dict)
 
         if segmentation is True:
             self.segmentation_model = torch.load(
                 self.segmentation_model_path, map_location=torch.device(device)
             )
-
+        self.segmentation_model.eval()
         features = np.load(features_path)
         print(features.shape)
         t0 = time.time()
@@ -119,8 +117,8 @@ class FeatureMatcher:
                 result = self.phase2(x.unsqueeze(0))
             else:
                 raise NotImplementedError()
-        print("ARGMAX", F.softmax(result))
-        return torch.argmax(F.softmax(result), dim=1)
+
+        return torch.argmax(F.softmax(result, dim=1), dim=1)
 
     def segment_image(self, image):
 
