@@ -21,20 +21,16 @@ def get_handler(fm, image_size, data_path, segmentation):
         image = Image.open(local_filename).convert("RGB")
         if segmentation:
             image = fm.segment_image(image)
-        classes = fm.classify(image, image_size=image_size)
+        master_classe = fm.classify(image, image_size=image_size, phase=1)
+        sub_classe = fm.classify(image, image_size=image_size, phase=2)
 
-        labels = [f"In base al tuo sesso {classes[0]}",
-                  f"In base al tipo di abito {classes[1]}",
-                  f"In base al sottotipo di abito {classes[2]}",
-                  f"Simili al tuo stile"]
+        bot.sendMessage(chat_id, f"Master: {master_classe} \n sub: {sub_classe}")
 
-        for i in range(0, 4):
-            bot.sendMessage(chat_id, labels[i])
-            result = fm.get_k_most_similar(image, image_size=image_size,
-                                           k=k, similar_type=i)
-            for r in result:
-                image_path = os.path.join(data_path, str(r))
-                bot.sendImage(chat_id, image_path, "")
+        result = fm.get_k_most_similar(image, image_size=image_size,
+                                       k=k, segmentation=False)
+        for r in result:
+            image_path = os.path.join(data_path, str(r))
+            bot.sendImage(chat_id, image_path, "")
 
     return imageHandler
 
@@ -44,19 +40,22 @@ if __name__ == "__main__":
         'data_path': 'data/fashion-product-images-small/images',
         'exp_base_dir': 'data/exps/exp1',
         'image_size': (224, 224),
-        'load_path': "data/models/resnet18_best.pt",
-        'features_path': 'data/features/featuresresnet18.npy',
-        'index_path': 'data/features/featuresresnet18_index.pickle',
+        'phase_1_model': "data/models/resnet18_phase1_best.pt",
+        'phase_2_model': "data/models/resnet18_phase2_best.pt",
+        'features_path': 'data/features/features_resnet18_phase2.npy',
+        'index_path': 'data/features/features_resnet18_phase2.pickle',
         'segmentation_path': 'data/models/segm.pth',
 
     }
     # ["gender", "masterCategory", "subCategory"]
 
-    fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
+    fm = FeatureMatcher(features_path=config['features_path'], phase1_params_path=config[
+        'phase_1_model'], phase2_params_path=config['phase_2_model'],
+                        image_size=config['image_size'],
                         index_path=config['index_path'],
                         segmentation_model_path=config['segmentation_path'])
 
     updater = Updater(BOT_TOKEN)
     updater.setPhotoHandler(get_handler(fm, config['image_size'], config['data_path'],
-                                        segmentation=False))
+                                        segmentation=True))
     updater.start()

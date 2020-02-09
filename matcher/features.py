@@ -7,13 +7,15 @@ import numpy as np
 import torchvision.transforms.functional as TF
 import cv2
 import segmentation_models_pytorch as smp
-from compact_bilinear_pooling import CompactBilinearPooling
+from matcher.models import TwoPhaseNet
 
 
 class FeatureMatcher:
 
-    def __init__(self, model_path, features_path, index_path, segmentation_model_path,
+    def __init__(self, phase1_params_path, phase2_params_path, features_path, index_path,
+                 image_size, segmentation_model_path,
                  segmentation_model_name="efficientnet-b2", device="cpu"):
+
         with open(index_path, "rb") as pic:
             self.index = pickle.load(pic)
 
@@ -22,37 +24,59 @@ class FeatureMatcher:
             segmentation_model_name, "imagenet"
         )
 
-        self.model_path = model_path
         self.segmentation_model_path = segmentation_model_path
-        self.model = torch.load(self.model_path, map_location=torch.device(device))
+
+        self.image_size = image_size
+
+        self.feature_extractor = TwoPhaseNet(
+            image_size=image_size,
+            n_classes_phase1=6,
+            n_classes_phase2=43,
+            name="resnet18",
+        )
+
+        # Load phase1
+        self.phase1 = TwoPhaseNet(
+            image_size=image_size,
+            n_classes_phase1=6,
+            n_classes_phase2=43,
+            name='resnet18',
+        )
+        self.phase1.phase1()
+        self.phase1.load_state_dict(torch.load(phase1_params_path, map_location=torch.device('cpu')))
+
+        # Load phase1
+        self.phase2 = TwoPhaseNet(
+            image_size=image_size,
+            n_classes_phase1=6,
+            n_classes_phase2=43,
+            name='resnet18',
+        )
+        self.phase2.phase2()
+        self.phase2.load_state_dict(torch.load(phase2_params_path, map_location=torch.device('cpu')))
+
+        # Load phase2 as feature extractor
+        pretrained_dict = torch.load(phase2_params_path, map_location=torch.device(device))
+        model_dict = self.feature_extractor.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        self.feature_extractor.load_state_dict(pretrained_dict)
 
         self.segmentation_model = torch.load(self.segmentation_model_path,
                                              map_location=torch.device(
                                                  device))
+
         features = np.load(features_path)
 
         t0 = time.time()
 
-        self.f1 = features[:, 0, :]
-        self.f2 = features[:, 1, :]
+        self.features = np.squeeze(features)
+        print(f"Features shape {self.features.shape}")
+        self.tree = KDTree(self.features)
 
-        input_size = self.f1.shape[-1]
-        output_size = input_size
-        self.mcb = CompactBilinearPooling(input_size, input_size, output_size)
-        x = torch.tensor(self.f1)
-        y = torch.tensor(self.f2)
-
-        self.tot = self.mcb(x, y).numpy()
-
-        self.trees = [
-            KDTree(self.f1),
-            KDTree(self.f2),
-            KDTree(self.tot),
-        ]
         print("Loaded in {}s".format(time.time() - t0))
 
-    def classify(self, image, image_size, device="cpu", segmentation=True):
-        model = torch.load(self.model_path, map_location=torch.device(device))
+    def classify(self, image, image_size, phase=1):
 
         image = image.resize(image_size)
         image.show()
@@ -60,10 +84,16 @@ class FeatureMatcher:
         x = TF.to_tensor(image)
         x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-        result = model(x.unsqueeze(0))
-        return torch.argmax(result[0]), torch.argmax(result[1]), torch.argmax(result[2])
+        if phase == 1:
+            result = self.phase1(x.unsqueeze(0))
+        elif phase == 2:
+            result = self.phase2(x.unsqueeze(0))
+        else:
+            raise NotImplementedError()
 
-    def segment_image(self, image, device="cpu"):
+        return torch.argmax(result)
+
+    def segment_image(self, image):
 
         if type(image) != torch.FloatTensor:
             image = cv2.resize(np.asarray(image), (256, 256))
@@ -80,34 +110,27 @@ class FeatureMatcher:
         image.show()
         return image
 
-    def extract_feature(self, x, image_size, similar_type):
+    def extract_feature(self, x, image_size):
         if type(x) != torch.Tensor:
             x = x.resize(image_size)
             x = TF.to_tensor(x)
             x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-        self.model.set_as_feature_extractor()
-        feature = self.model(x.unsqueeze(0))
+        with torch.no_grad():
+            feature = self.feature_extractor(x.unsqueeze(0))
 
-        if similar_type < 2:
-            feature = feature[similar_type].detach().numpy()
-        else:
-            feature[0].detach()
-            feature[1].detach()
-
-            feature = self.mcb(feature[0], feature[1]).detach().numpy()
         return feature
 
-    def get_k_most_similar(self, x, image_size, k=1, device="cpu", similar_type=0,
-                           net_name="resnet"):
+    def get_k_most_similar(self, x, image_size, k=1, segmentation=True):
 
         print('Loading features')
+        if segmentation:
+            x = self.segment_image(x)
 
-        feature = self.extract_feature(x, image_size, similar_type)
-
+        feature = self.extract_feature(x, image_size)
         t0 = time.time()
         print("Looking for ...")
-        similar = self.trees[similar_type].query(feature, k=k, return_distance=False)
+        similar = self.tree.query(feature, k=k, return_distance=False)
 
         print("Found in {}s".format(time.time() - t0))
 
