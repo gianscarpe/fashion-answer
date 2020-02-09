@@ -3,7 +3,7 @@ import os
 import pickle
 from PIL import Image
 from tqdm import tqdm
-from matcher.models import TwoPhaseNet
+from matcher.models import TwoPhaseNet, Identity
 import torchvision.transforms.functional as TF
 import numpy as np
 
@@ -12,13 +12,13 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config = {
         "two_phase": True,
-        "phase": "1",
+        "phase": "2",
         "data_path": "data/images",
         "model_name": "resnet18",
         "n_label": 1,
         "image_size": [224, 224],
-        "load_path": "../drive/My Drive/fashion-answer/data/models/resnet18_phase1_best.pt",
-        "save_path": "../drive/My Drive/fashion-answer/data/features",
+        "load_path": "./data/exps/resnet18_phase2_best.pt",
+        "save_path": "./data/features",
     }
 
     if config["two_phase"]:
@@ -28,12 +28,13 @@ if __name__ == "__main__":
             n_classes_phase2=43,
             name=config["model_name"],
         )
+        if config["phase"] == "1":
+            model.phase1()
+        else:
+            model.phase2()
+        model.load_state_dict(torch.load(config["load_path"]))
+        model.classifier = Identity()
         model.to(device)
-        pretrained_dict = torch.load(config["load_path"])
-        model_dict = model.state_dict()
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        model_dict.update(pretrained_dict)
-        model.load_state_dict(pretrained_dict)
     elif not config["two_phase"] and config["load_path"]:
         print("Loading model")
         model = torch.load(config["load_path"], map_location=device)
