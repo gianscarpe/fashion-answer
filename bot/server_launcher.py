@@ -35,7 +35,7 @@ def get_handler(fm, image_size, data_path, segmentation, les):
         )
         for r in result:
             image_path = os.path.join(data_path, str(r))
-        bot.sendImage(chat_id, image_path, "")
+            bot.sendImage(chat_id, image_path, "")
 
     return imageHandler
 
