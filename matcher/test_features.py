@@ -51,7 +51,7 @@ with torch.no_grad():
     val_loss = []
     for ind in range(lenloader):
         image, target = test_loader[ind]
-        for similarity in range(0, 2):  # Per ogni classe di similarità
+        for similarity in range(2, 3):  # Per ogni classe di similarità
             if config["segmentation"]:
                 image = fm.segment_image(image)
             try:
