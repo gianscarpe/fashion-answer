@@ -13,16 +13,16 @@ from matcher.models import TwoPhaseNet, Identity
 
 class FeatureMatcher:
     def __init__(
-        self,
-        phase1_params_path,
-        phase2_params_path,
-        features_path,
-        index_path,
-        image_size,
-        segmentation_model_path,
-        segmentation_model_name="efficientnet-b2",
-        device="cpu",
-        segmentation=True
+            self,
+            phase1_params_path,
+            phase2_params_path,
+            features_path,
+            index_path,
+            image_size,
+            segmentation_model_path,
+            segmentation_model_name="efficientnet-b2",
+            device="cpu",
+            segmentation=True
     ):
 
         with open(index_path, "rb") as pic:
@@ -38,6 +38,7 @@ class FeatureMatcher:
         self.image_size = image_size
 
         # Load phase1
+
         self.phase1 = TwoPhaseNet(
             image_size=image_size,
             n_classes_phase1=6,
@@ -64,6 +65,7 @@ class FeatureMatcher:
         print(self.phase2)
 
         # Load phase2 as feature extractor
+
         self.feature_extractor = TwoPhaseNet(
             image_size=image_size,
             n_classes_phase1=6,
@@ -96,17 +98,21 @@ class FeatureMatcher:
 
         print("Loaded in {}s".format(time.time() - t0))
 
-    def classify(self, image, image_size, phase=1):
+    def classify(self, x, image_size, phase=1):
 
-        image = image.resize(image_size)
-        image.show()
+        self.phase1.to("cpu")
+        self.phase2.to("cpu")
 
-        x = TF.to_tensor(image)
-        x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        if type(x) != torch.Tensor:
+            x = x.resize(image_size)
+            x = TF.to_tensor(x)
+            x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            for i in range(len(x)):
+                x[i] = x[i].to("cpu")
 
         with torch.no_grad():
             if phase == 1:
-                result = self.phase1(x.unsqueeze(0))
+                result = self.phase1(x[None])
             elif phase == 2:
                 result = self.phase2(x.unsqueeze(0))
             else:
@@ -142,7 +148,7 @@ class FeatureMatcher:
 
         return feature
 
-    def get_k_most_similar(self, x, image_size, k=1, segmentation=True):
+    def get_k_most_similar(self, x, image_size, k=1, segmentation=False):
 
         print("Loading features")
         if segmentation:

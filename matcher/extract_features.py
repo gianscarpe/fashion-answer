@@ -32,6 +32,8 @@ if __name__ == "__main__":
             model.phase1()
         else:
             model.phase2()
+
+
         model.load_state_dict(torch.load(config["load_path"]))
         model.classifier = Identity()
         model.to(device)

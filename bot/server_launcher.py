@@ -23,7 +23,7 @@ def get_handler(
     label_encoder_sub=None,
 ):
     def imageHandler(
-        bot, message, chat_id, local_filename, k=3, segmentation=segmentation
+            bot, message, chat_id, local_filename, k=3, segmentation=segmentation
     ):
         print(local_filename)
         # send message to user
@@ -47,23 +47,28 @@ def get_handler(
         )
         for r in result:
             image_path = os.path.join(data_path, str(r))
-            bot.sendImage(chat_id, image_path, "")
+        bot.sendImage(chat_id, image_path, "")
 
     return imageHandler
 
 
 if __name__ == "__main__":
     config = {
-        "data_path": "data/images",
+        "data_path": "data/fashion-product-images-small/images",
         "exp_base_dir": "data/exps/exp1",
-        "image_size": (224, 224),
+        "image_size": [224, 224],
         "phase_1_model": "data/models/resnet18_phase1_best.pt",
         "phase_2_model": "data/models/resnet18_phase2_best.pt",
         "features_path": "data/features/features_resnet18_phase2.npy",
         "index_path": "data/features/features_resnet18_phase2.pickle",
         "segmentation_path": "data/models/segm.pth",
+        "les_path": "data/features/le.pickle"
     }
-    # ["gender", "masterCategory", "subCategory"]
+    # ["gender", "masterCategory", "subCatetgory"]
+    import pickle
+
+    with open(config['les_path'], 'rb') as pi:
+        les = pickle.load(pi)
 
     fm = FeatureMatcher(
         features_path=config["features_path"],
