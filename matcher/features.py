@@ -76,12 +76,16 @@ class FeatureMatcher:
         )
         self.feature_extractor.classifier = Identity()
         print(self.feature_extractor)
+        
+        self.phase1.eval()
+        self.phase2.eval()
+        self.feature_extractor.eval()
 
         if segmentation is True:
             self.segmentation_model = torch.load(
                 self.segmentation_model_path, map_location=torch.device(device)
             )
-
+        self.segmentation_model.eval()
         features = np.load(features_path)
         print(features.shape)
         t0 = time.time()
@@ -107,7 +111,7 @@ class FeatureMatcher:
                 result = self.phase2(x.unsqueeze(0))
             else:
                 raise NotImplementedError()
-        print("ARGMAX", F.softmax(result))
+
         return torch.argmax(F.softmax(result, dim=1), dim=1)
 
     def segment_image(self, image):
