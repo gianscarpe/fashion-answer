@@ -35,20 +35,18 @@ class FeatureMatcher:
 
         self.f1 = features[:, 0, :]
         self.f2 = features[:, 1, :]
-        self.f3 = features[:, 2, :]
 
         input_size = self.f1.shape[-1]
         output_size = input_size
         self.mcb = CompactBilinearPooling(input_size, input_size, output_size)
-        x = torch.tensor(self.f2)
-        y = torch.tensor(self.f3)
+        x = torch.tensor(self.f1)
+        y = torch.tensor(self.f2)
 
         self.tot = self.mcb(x, y).numpy()
 
         self.trees = [
             KDTree(self.f1),
             KDTree(self.f2),
-            KDTree(self.f3),
             KDTree(self.tot),
         ]
         print("Loaded in {}s".format(time.time() - t0))
@@ -91,13 +89,13 @@ class FeatureMatcher:
         self.model.set_as_feature_extractor()
         feature = self.model(x.unsqueeze(0))
 
-        if similar_type < 3:
+        if similar_type < 2:
             feature = feature[similar_type].detach().numpy()
         else:
+            feature[0].detach()
             feature[1].detach()
-            feature[2].detach()
 
-            feature = self.mcb(feature[1], feature[2]).detach().numpy()
+            feature = self.mcb(feature[0], feature[1]).detach().numpy()
         return feature
 
     def get_k_most_similar(self, x, image_size, k=1, device="cpu", similar_type=0,
