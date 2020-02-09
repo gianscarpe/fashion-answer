@@ -3,7 +3,7 @@ import os
 import pickle
 from PIL import Image
 from tqdm import tqdm
-from matcher.models import TwoPhaseNet, Identity
+from matcher.models import TwoPhaseNet
 import torchvision.transforms.functional as TF
 import numpy as np
 
