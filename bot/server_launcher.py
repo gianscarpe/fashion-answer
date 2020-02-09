@@ -69,6 +69,8 @@ if __name__ == "__main__":
 
     with open(config['les_path'], 'rb') as pi:
         les = pickle.load(pi)
+        label_encoder_master = les[0]
+        label_encoder_sub = les[1]
 
     fm = FeatureMatcher(
         features_path=config["features_path"],
@@ -78,22 +80,7 @@ if __name__ == "__main__":
         index_path=config["index_path"],
         segmentation_model_path=config["segmentation_path"],
     )
-    label_encoder_master = ClassificationDataset(
-        "./data/images/",
-        "./data/small_train.csv",
-        distinguish_class=["masterCategory"],
-        load_path=None,
-        image_size=None,
-        transform=None,
-    ).les[0]
-    label_encoder_sub = ClassificationDataset(
-        "./data/images/",
-        "./data/small_train.csv",
-        distinguish_class=["subCategory"],
-        load_path=None,
-        image_size=None,
-        transform=None,
-    ).les[0]
+
     updater = Updater(BOT_TOKEN)
     updater.setPhotoHandler(
         get_handler(
