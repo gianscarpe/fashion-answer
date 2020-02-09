@@ -33,7 +33,8 @@ def main():
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
-    train_loader = DataLoader(
+
+    train_dataset = (
         ClassificationDataset(
             "./data/images/",
             "./data/small_train.csv",
@@ -42,10 +43,10 @@ def main():
             image_size=config["image_size"],
             transform=normalize,
         ),
-        batch_size=config["batch_size"],
-        shuffle=True,
     )
-
+    train_loader = DataLoader(
+        train_dataset, batch_size=config["batch_size"], shuffle=True
+    )
     val_loader = DataLoader(
         ClassificationDataset(
             "./data/images",
@@ -54,6 +55,7 @@ def main():
             image_size=config["image_size"],
             transform=normalize,
             thr=5,
+            label_encoder=train_dataset.les
         ),
         batch_size=config["batch_size"],
         shuffle=True,

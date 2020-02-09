@@ -3,7 +3,7 @@ import time
 import json, os, sys
 import urllib
 import tempfile
-from Bot import Bot
+from bot.Bot import Bot
 
 
 def doNothing(*arg):

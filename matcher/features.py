@@ -22,6 +22,7 @@ class FeatureMatcher:
         segmentation_model_path,
         segmentation_model_name="efficientnet-b2",
         device="cpu",
+        segmentation=True
     ):
 
         with open(index_path, "rb") as pic:
@@ -47,6 +48,7 @@ class FeatureMatcher:
         self.phase1.load_state_dict(
             torch.load(phase1_params_path, map_location=torch.device("cpu"))
         )
+        print(self.phase1)
 
         # Load phase2
         self.phase2 = TwoPhaseNet(
@@ -59,6 +61,7 @@ class FeatureMatcher:
         self.phase2.load_state_dict(
             torch.load(phase2_params_path, map_location=torch.device("cpu"))
         )
+        print(self.phase2)
 
         # Load phase2 as feature extractor
         self.feature_extractor = TwoPhaseNet(
@@ -72,13 +75,15 @@ class FeatureMatcher:
             torch.load(phase2_params_path, map_location=torch.device("cpu"))
         )
         self.feature_extractor.classifier = Identity()
+        print(self.feature_extractor)
 
-        self.segmentation_model = torch.load(
-            self.segmentation_model_path, map_location=torch.device(device)
-        )
+        if segmentation is True:
+            self.segmentation_model = torch.load(
+                self.segmentation_model_path, map_location=torch.device(device)
+            )
 
         features = np.load(features_path)
-
+        print(features.shape)
         t0 = time.time()
 
         self.features = np.squeeze(features)
@@ -102,8 +107,8 @@ class FeatureMatcher:
                 result = self.phase2(x.unsqueeze(0))
             else:
                 raise NotImplementedError()
-
-        return torch.argmax(F.softmax(result), dim=1)
+        print("ARGMAX", F.softmax(result))
+        return torch.argmax(F.softmax(result, dim=1), dim=1)
 
     def segment_image(self, image):
 

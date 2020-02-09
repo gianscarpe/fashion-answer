@@ -1,10 +1,9 @@
-import os, sys, platform, subprocess
-from config import BOT_TOKEN
+import os
 from matcher.features import FeatureMatcher
-import torch
-from Updater import Updater
+from bot.Updater import Updater
 from PIL import Image
 
+BOT_TOKEN = "1073943883:AAGomT4w81fVftMWxO2-OnP3ZSGB8e2eaQg"
 
 def fileparts(fn):
     (dirName, fileName) = os.path.split(fn)
@@ -42,7 +41,7 @@ def get_handler(fm, image_size, data_path, segmentation):
 
 if __name__ == "__main__":
     config = {
-        "data_path": "data/fashion-product-images-small/images",
+        "data_path": "data/images",
         "exp_base_dir": "data/exps/exp1",
         "image_size": (224, 224),
         "phase_1_model": "data/models/resnet18_phase1_best.pt",
@@ -64,6 +63,6 @@ if __name__ == "__main__":
 
     updater = Updater(BOT_TOKEN)
     updater.setPhotoHandler(
-        get_handler(fm, config["image_size"], config["data_path"], segmentation=True)
+        get_handler(fm, config["image_size"], config["data_path"], segmentation=False)
     )
     updater.start()
