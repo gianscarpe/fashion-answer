@@ -45,8 +45,8 @@ if __name__ == "__main__":
         'features_path': 'data/features/features_resnet18_phase2.npy',
         'index_path': 'data/features/features_resnet18_phase2.pickle',
         'segmentation_path': 'data/models/segm.pth',
-
     }
+
     # ["gender", "masterCategory", "subCategory"]
 
     fm = FeatureMatcher(features_path=config['features_path'], phase1_params_path=config[
@@ -57,5 +57,5 @@ if __name__ == "__main__":
 
     updater = Updater(BOT_TOKEN)
     updater.setPhotoHandler(get_handler(fm, config['image_size'], config['data_path'],
-                                        segmentation=True))
+                                        segmentation=False))
     updater.start()
