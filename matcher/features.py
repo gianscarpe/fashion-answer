@@ -13,15 +13,16 @@ from matcher.models import TwoPhaseNet, Identity
 
 class FeatureMatcher:
     def __init__(
-        self,
-        phase1_params_path,
-        phase2_params_path,
-        features_path,
-        index_path,
-        image_size,
-        segmentation_model_path,
-        segmentation_model_name="efficientnet-b2",
-        device="cpu",
+            self,
+            phase1_params_path,
+            phase2_params_path,
+            features_path,
+            index_path,
+            image_size,
+            segmentation_model_path,
+            segmentation_model_name="efficientnet-b2",
+            device="cpu",
+            segmentation=True
     ):
 
         with open(index_path, "rb") as pic:
@@ -37,6 +38,7 @@ class FeatureMatcher:
         self.image_size = image_size
 
         # Load phase1
+
         self.phase1 = TwoPhaseNet(
             image_size=image_size,
             n_classes_phase1=6,
@@ -47,7 +49,7 @@ class FeatureMatcher:
         self.phase1.load_state_dict(
             torch.load(phase1_params_path, map_location=torch.device("cpu"))
         )
-
+        print(self.phase1)
 
         # Load phase2
         self.phase2 = TwoPhaseNet(
@@ -60,7 +62,7 @@ class FeatureMatcher:
         self.phase2.load_state_dict(
             torch.load(phase2_params_path, map_location=torch.device("cpu"))
         )
-
+        print(self.phase2)
 
         # Load phase2 as feature extractor
 
@@ -70,6 +72,12 @@ class FeatureMatcher:
             n_classes_phase2=43,
             name="resnet18",
         )
+
+
+        self.phase1.eval()
+        self.phase2.eval()
+        self.feature_extractor.eval()
+
         self.feature_extractor.to("cpu")
         pretrained_dict = torch.load(phase2_params_path, map_location=torch.device('cpu'))
         model_dict = self.feature_extractor.state_dict()
@@ -77,14 +85,13 @@ class FeatureMatcher:
         model_dict.update(pretrained_dict)
         self.feature_extractor.load_state_dict(pretrained_dict)
 
-
-
-        self.segmentation_model = torch.load(
-            self.segmentation_model_path, map_location=torch.device(device)
-        )
+        if segmentation is True:
+            self.segmentation_model = torch.load(
+                self.segmentation_model_path, map_location=torch.device(device)
+            )
 
         features = np.load(features_path)
-
+        print(features.shape)
         t0 = time.time()
 
         self.features = np.squeeze(features)
@@ -93,20 +100,26 @@ class FeatureMatcher:
 
         print("Loaded in {}s".format(time.time() - t0))
 
-    def classify(self, image, image_size, phase=1):
+    def classify(self, x, image_size, phase=1):
 
-        image = image.resize(image_size)
-        x = TF.to_tensor(image)
-        x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.phase1.to("cpu")
+        self.phase2.to("cpu")
+
+        if type(x) != torch.Tensor:
+            x = x.resize(image_size)
+            x = TF.to_tensor(x)
+            x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            for i in range(len(x)):
+                x[i] = x[i].to("cpu")
 
         with torch.no_grad():
             if phase == 1:
-                result = self.phase1(x.unsqueeze(0))
+                result = self.phase1(x[None])
             elif phase == 2:
                 result = self.phase2(x.unsqueeze(0))
             else:
                 raise NotImplementedError()
-
+        print("ARGMAX", F.softmax(result))
         return torch.argmax(F.softmax(result), dim=1)
 
     def segment_image(self, image):

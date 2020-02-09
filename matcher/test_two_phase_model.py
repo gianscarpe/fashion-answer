@@ -4,6 +4,7 @@ from torchvision import transforms
 from matcher.models import TwoPhaseNet
 from matcher.dataset import ClassificationDataset
 from torch.utils.data import DataLoader
+from matcher.features import FeatureMatcher
 
 
 def main():
@@ -22,8 +23,8 @@ def main():
     )
 
     train_dataset = ClassificationDataset(
-        "./data/images",
-        "./data/small_train.csv",
+        "./data/fashion-product-images-small/images",
+        "./data/csv/small_train.csv",
         distinguish_class=config["classes"],
         image_size=config["image_size"],
         transform=normalize,
@@ -32,15 +33,15 @@ def main():
 
     test_loader = DataLoader(
         ClassificationDataset(
-            "./data/images",
-            "./data/small_test.csv",
+            "./data/fashion-product-images-small/images",
+            "./data/csv/small_test.csv",
             distinguish_class=config["classes"],
             image_size=config["image_size"],
             transform=normalize,
             thr=5,
             label_encoder=train_dataset.les
         ),
-        batch_size=config["batch_size"],
+        batch_size=1,
         shuffle=False,
     )
 
@@ -50,6 +51,7 @@ def main():
         n_classes_phase2=43,
         name=config["model_name"],
     )
+
     if config["phase"] == "1":
         model.phase1()
     elif config["phase"] == "2":
@@ -58,10 +60,31 @@ def main():
     if config["load_path"]:
         model.load_state_dict(torch.load(config["load_path"], map_location=device))
 
-    test(model, device, test_loader, n_label=1)
+    config = {
+        "input": "data/examples/11100.jpg",
+        "data_path": "data/fashion-product-images-small/images",
+        "exp_base_dir": "data/exps/exp1",
+        "image_size": [224, 224],
+        "phase_1_model": "data/models/resnet18_phase1_best.pt",
+        "phase_2_model": "data/models/resnet18_phase2_best.pt",
+        "features_path": "data/features/features_resnet18_phase2.npy",
+        "index_path": "data/features/features_resnet18_phase2.pickle",
+        "segmentation_path": "data/models/segm.pth",
+    }
+
+    fm = FeatureMatcher(
+        features_path=config["features_path"],
+        phase1_params_path=config["phase_1_model"],
+        phase2_params_path=config["phase_2_model"],
+        image_size=config["image_size"],
+        index_path=config["index_path"],
+        segmentation_model_path=config["segmentation_path"],
+    )
+
+    test(fm.phase1, fm, device, test_loader, n_label=1)
 
 
-def test(model, device, test_loader, n_label=3):
+def test(model, fm, device, test_loader, n_label=3):
     model.eval()
     model.to(device)
     with torch.no_grad():
@@ -71,9 +94,9 @@ def test(model, device, test_loader, n_label=3):
             data = data.to(device)
             target = target.long().to(device)
 
-            output = model(data)
+            output = fm.classify(data[0], image_size=[224, 224])
             accurate_labels += torch.sum(
-                (torch.argmax(F.softmax(output), dim=1) == target[:, 0])
+                (output == target[:, 0])
             )
 
             all_labels += len(target)

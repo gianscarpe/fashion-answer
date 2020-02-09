@@ -13,7 +13,7 @@ class Identity(nn.Module):
 
 class TwoPhaseNet(nn.Module):
     def __init__(
-        self, image_size, n_classes_phase1, n_classes_phase2, phase="1", name="resnet34"
+        self, image_size, n_classes_phase1, n_classes_phase2, phase="1", name="resnet18"
     ):
         super(TwoPhaseNet, self).__init__()
 
