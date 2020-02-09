@@ -13,7 +13,7 @@ config = {
     "features_path": "data/features/featuresalexnet.npy",
     "index_path": "data/features/featuresalexnet.pickle",
     "segmentation_path": "data/models/segm.pth",
-    "classes": ["masterCategory", "subCategory", "gender"],
+    "classes": ["masterCategory", "subCategory"],
     "segmentation": False,
 }
 # ["gender", "subCategory", "masterCategory"]
@@ -28,11 +28,11 @@ fm = FeatureMatcher(
 
 # %%
 print("Loading")
-dataset = pd.read_csv("./data/styles.csv", error_bad_lines=False)
+dataset = pd.read_csv("./data/csv/styles.csv", error_bad_lines=False)
 
 test_loader = ClassificationDataset(
     "./data/fashion-product-images-small/images",
-    "./data/small_test.csv",
+    "./data/csv/small_test.csv",
     distinguish_class=config["classes"],
     image_size=config["image_size"],
     transform=transforms.Normalize(
@@ -42,7 +42,7 @@ test_loader = ClassificationDataset(
 )
 
 # %%
-classes = ["masterCategory", "subCategory", "gender"]
+classes = ["masterCategory", "subCategory"]
 device = "cpu"
 accurate_labels = [0, 0, 0]
 accuracies = [0, 0, 0]
@@ -52,24 +52,29 @@ with torch.no_grad():
     val_loss = []
     for ind in range(lenloader):
         image, target = test_loader[ind]
-        for similarity in range(2, 3):  # Per ogni classe di similarità
-            if config["segmentation"]:
-                image = fm.segment_image(image)
-            try:
-                output = fm.get_k_most_similar(
-                    image, similar_type=similarity, image_size=config["image_size"]
-                )
-                key = int(output[0][:-4])
-                target_class = test_loader.les[similarity].inverse_transform(
-                    [int(target[similarity])]
-                )[0]
-                found = dataset[dataset["id"] == key][classes[similarity]].values[0]
-                accurate_labels[similarity] += found == target_class
+        if config["segmentation"]:
+            image = fm.segment_image(image)
+        try:
+            output = fm.get_k_most_similar(
+                image, similar_type=2, image_size=config["image_size"]
+            )
+            key = int(output[0][:-4])
+            target_class1 = test_loader.les[0].inverse_transform(
+                [int(target[0])]
+            )[0]
+            target_class2 = test_loader.les[1].inverse_transform(
+                [int(target[1])]
+            )[0]
 
-            except:
-                print("Missing")
+            pred_class1 = dataset[dataset["id"] == key][classes[0]].values[0]
+            pred_class2 = dataset[dataset["id"] == key][classes[1]].values[0]
+            accurate_labels[0] += pred_class1 == target_class1
+            accurate_labels[1] += pred_class2 == target_class2
+        except:
+            print("Missing")
 
         print(f"Immagine {ind}/{lenloader}")
+        print(f"Temp. accuracy1 {accurate_labels[0] / (ind + 1)} accuracy2 {accurate_labels[1] / (ind + 1)}")
 
 print(f"Label accurate {accurate_labels}")
 
