@@ -10,7 +10,7 @@ from matcher.features import FeatureMatcher
 def main():
     config = {
         "phase": "1",
-        "classes": ["masterCategory"],  # subCategory masterCategory
+        "classes": ["masterCategory", 'subCategory'],  # subCategory masterCategory
         "model_name": "resnet18",
         "batch_size": 16,
         "image_size": [224, 224],
@@ -44,6 +44,10 @@ def main():
         batch_size=1,
         shuffle=False,
     )
+
+    import pickle
+    with open("le.pickle", 'wb') as pi:
+        pickle.dump(train_dataset.les, pi)
 
     model = TwoPhaseNet(
         image_size=config["image_size"],

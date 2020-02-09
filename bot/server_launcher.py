@@ -12,7 +12,7 @@ def fileparts(fn):
     return dirName, fileBaseName, fileExtension
 
 
-def get_handler(fm, image_size, data_path, segmentation):
+def get_handler(fm, image_size, data_path, segmentation, les):
     def imageHandler(
             bot, message, chat_id, local_filename, k=3, segmentation=segmentation
     ):
@@ -28,14 +28,14 @@ def get_handler(fm, image_size, data_path, segmentation):
         master_classe = fm.classify(image, image_size=image_size, phase=1)
         sub_classe = fm.classify(image, image_size=image_size, phase=2)
 
-        bot.sendMessage(chat_id, f"Master: {master_classe} \n sub: {sub_classe}")
+        bot.sendMessage(chat_id, f"Master: {les[0].inverse_transform([int(master_classe)])[0]} \n sub: {les[1].inverse_transform([int(sub_classe)])[0]}")
 
         result = fm.get_k_most_similar(
             image, image_size=image_size, k=k, segmentation=False
         )
         for r in result:
             image_path = os.path.join(data_path, str(r))
-            bot.sendImage(chat_id, image_path, "")
+        bot.sendImage(chat_id, image_path, "")
 
     return imageHandler
 
@@ -50,8 +50,13 @@ if __name__ == "__main__":
         "features_path": "data/features/features_resnet18_phase2.npy",
         "index_path": "data/features/features_resnet18_phase2.pickle",
         "segmentation_path": "data/models/segm.pth",
+        "les_path": "data/features/le.pickle"
     }
     # ["gender", "masterCategory", "subCatetgory"]
+    import pickle
+
+    with open(config['les_path'], 'rb') as pi:
+        les = pickle.load(pi)
 
     fm = FeatureMatcher(
         features_path=config["features_path"],
@@ -64,6 +69,6 @@ if __name__ == "__main__":
 
     updater = Updater(BOT_TOKEN)
     updater.setPhotoHandler(
-        get_handler(fm, config["image_size"], config["data_path"], segmentation=False)
+        get_handler(fm, config["image_size"], config["data_path"], segmentation=False, les=les)
     )
     updater.start()
