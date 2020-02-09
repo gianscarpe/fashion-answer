@@ -48,7 +48,7 @@ class FeatureMatcher:
             torch.load(phase1_params_path, map_location=torch.device("cpu"))
         )
 
-        # Load phase1
+        # Load phase2
         self.phase2 = TwoPhaseNet(
             image_size=image_size,
             n_classes_phase1=6,
