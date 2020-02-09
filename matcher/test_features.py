@@ -1,29 +1,30 @@
 # %%
 import torch
 from matcher.features import FeatureMatcher
-from torch.utils.data import DataLoader
 from matcher.dataset import ClassificationDataset
 from torchvision import transforms
 import pandas as pd
 
 config = {
-    'data_path': 'data/fashion-product-images-small/images',
-    'exp_base_dir': 'data/exps/exp1',
-    'image_size': (224, 224),
-    'load_path': "data/models/alexnet_best.pt",
-    'features_path': 'data/features/featuresalexnet.npy',
-    'index_path': 'data/features/featuresalexnet.pickle',
-    'segmentation_path': 'data/models/segm.pth',
+    "data_path": "data/fashion-product-images-small/images",
+    "exp_base_dir": "data/exps/exp1",
+    "image_size": (224, 224),
+    "load_path": "data/models/alexnet_best.pt",
+    "features_path": "data/features/featuresalexnet.npy",
+    "index_path": "data/features/featuresalexnet.pickle",
+    "segmentation_path": "data/models/segm.pth",
     "classes": ["masterCategory", "subCategory", "gender"],
-    "segmentation": False
-
+    "segmentation": False,
 }
 # ["gender", "subCategory", "masterCategory"]
 
 # %%
-fm = FeatureMatcher(features_path=config['features_path'], model_path=config['load_path'],
-                    index_path=config['index_path'],
-                    segmentation_model_path=config['segmentation_path'])
+fm = FeatureMatcher(
+    features_path=config["features_path"],
+    model_path=config["load_path"],
+    index_path=config["index_path"],
+    segmentation_model_path=config["segmentation_path"],
+)
 
 # %%
 print("Loading")
@@ -55,13 +56,14 @@ with torch.no_grad():
             if config["segmentation"]:
                 image = fm.segment_image(image)
             try:
-                output = fm.get_k_most_similar(image, similar_type=similarity,
-                                               image_size=config["image_size"])
+                output = fm.get_k_most_similar(
+                    image, similar_type=similarity, image_size=config["image_size"]
+                )
                 key = int(output[0][:-4])
-                target_class = test_loader.les[similarity].inverse_transform([int(target[
-                                                                                      similarity])])[
-                    0]
-                found = dataset[dataset['id'] == key][classes[similarity]].values[0]
+                target_class = test_loader.les[similarity].inverse_transform(
+                    [int(target[similarity])]
+                )[0]
+                found = dataset[dataset["id"] == key][classes[similarity]].values[0]
                 accurate_labels[similarity] += found == target_class
 
             except:
@@ -69,10 +71,13 @@ with torch.no_grad():
 
         print(f"Immagine {ind}/{lenloader}")
 
-print(f'Label accurate {accurate_labels}')
+print(f"Label accurate {accurate_labels}")
 
 n_label = len(classes)
 for i in range(n_label):
     accuracies[i] = 100.0 * accurate_labels[i] / lenloader
     print(
-        "Test accuracy: ({})/{} ({})".format(accurate_labels[i], lenloader, accuracies[i]))
+        "Test accuracy: ({})/{} ({})".format(
+            accurate_labels[i], lenloader, accuracies[i]
+        )
+    )

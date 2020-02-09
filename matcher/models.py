@@ -132,10 +132,6 @@ class ClassificationNet(nn.Module):
             return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
 
     def set_as_feature_extractor(self, name="alexnet"):
-        try:
-            model_name = self.name
-        except AttributeError:
-            model_name = name
         self.method = "features"
         self.classifier1[-1] = Identity()
         self.classifier2[-1] = Identity()

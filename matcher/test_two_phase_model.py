@@ -8,12 +8,12 @@ from torch.utils.data import DataLoader
 
 def main():
     config = {
-        "phase": "2",
-        "classes": ["subCategory"],  # subCategory masterCategory
+        "phase": "1",
+        "classes": ["masterCategory"],  # subCategory masterCategory
         "model_name": "resnet18",
         "batch_size": 16,
         "image_size": [224, 224],
-        "load_path": "../drive/My Drive/fashion-answer/data/models/resnet18_phase2_best.pt",
+        "load_path": "data/models/resnet18_phase1_best.pt",
     }
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -29,6 +29,7 @@ def main():
         transform=normalize,
         thr=5,
     )
+
     test_loader = DataLoader(
         ClassificationDataset(
             "./data/images",
@@ -37,11 +38,12 @@ def main():
             image_size=config["image_size"],
             transform=normalize,
             thr=5,
-            label_encoder=train_dataset.les,
+            label_encoder=train_dataset.les
         ),
         batch_size=config["batch_size"],
         shuffle=False,
     )
+
     model = TwoPhaseNet(
         image_size=config["image_size"],
         n_classes_phase1=6,

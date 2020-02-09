@@ -3,7 +3,7 @@ import os
 import pickle
 from PIL import Image
 from tqdm import tqdm
-from matcher.models import TwoPhaseNet
+from matcher.models import TwoPhaseNet, Identity
 import torchvision.transforms.functional as TF
 import numpy as np
 
@@ -53,9 +53,17 @@ if __name__ == "__main__":
         x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         x = x.to(device)
         feature = model(x.unsqueeze(0))
-        features.append(
-            [np.array(feature[i].data.tolist()[0]) for i in range(config["n_label"])]
-        )
+        if not config["two_phase"]:
+            features.append(
+                [
+                    np.array(feature[i].data.tolist()[0])
+                    for i in range(config["n_label"])
+                ]
+            )
+        else:
+            features.append(
+                [np.array(feature.data.tolist()[0]) for i in range(config["n_label"])]
+            )
 
     np.save(
         os.path.join(
