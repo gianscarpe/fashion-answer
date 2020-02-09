@@ -48,7 +48,8 @@ class FeatureMatcher:
             torch.load(phase1_params_path, map_location=torch.device("cpu"))
         )
 
-        # Load phase1
+
+        # Load phase2
         self.phase2 = TwoPhaseNet(
             image_size=image_size,
             n_classes_phase1=6,
@@ -60,18 +61,23 @@ class FeatureMatcher:
             torch.load(phase2_params_path, map_location=torch.device("cpu"))
         )
 
+
         # Load phase2 as feature extractor
+
         self.feature_extractor = TwoPhaseNet(
             image_size=image_size,
             n_classes_phase1=6,
             n_classes_phase2=43,
             name="resnet18",
         )
-        self.feature_extractor.phase2()
-        self.feature_extractor.load_state_dict(
-            torch.load(phase2_params_path, map_location=torch.device("cpu"))
-        )
-        self.feature_extractor.classifier = Identity()
+        self.feature_extractor.to("cpu")
+        pretrained_dict = torch.load(phase2_params_path, map_location=torch.device('cpu'))
+        model_dict = self.feature_extractor.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict)
+        self.feature_extractor.load_state_dict(pretrained_dict)
+
+
 
         self.segmentation_model = torch.load(
             self.segmentation_model_path, map_location=torch.device(device)
@@ -131,7 +137,7 @@ class FeatureMatcher:
 
         return feature
 
-    def get_k_most_similar(self, x, image_size, k=1, segmentation=True):
+    def get_k_most_similar(self, x, image_size, k=1, segmentation=False):
 
         print("Loading features")
         if segmentation:
