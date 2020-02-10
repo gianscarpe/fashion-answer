@@ -10,7 +10,7 @@ from matcher.features import FeatureMatcher
 def main():
     config = {
         "phase": "1",
-        "classes": ["masterCategory", 'subCategory'],  # subCategory masterCategory
+        "classes": ["masterCategory", 'subCategoryt'],  # subCategory masterCategory
         "model_name": "resnet18",
         "batch_size": 16,
         "image_size": [224, 224],

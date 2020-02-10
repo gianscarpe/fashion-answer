@@ -13,7 +13,7 @@ if __name__ == "__main__":
     config = {
         "two_phase": True,
         "phase": "2",
-        "data_path": "data/images",
+        "data_path": "data/fashion-product-images/images",
         "model_name": "resnet18",
         "n_label": 1,
         "image_size": [224, 224],
@@ -47,6 +47,7 @@ if __name__ == "__main__":
     print("Extracting features")
     mapping = {}
     features = []
+    model.eval()
     for i, img_id in enumerate(tqdm(images)):
         mapping[i] = img_id
         img_id = img_id[:-4]
@@ -55,6 +56,7 @@ if __name__ == "__main__":
         x = TF.to_tensor(image)
         x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         x = x.to(device)
+
         feature = model(x.unsqueeze(0))
         if not config["two_phase"]:
             features.append(

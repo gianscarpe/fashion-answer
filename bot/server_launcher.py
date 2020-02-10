@@ -59,8 +59,8 @@ if __name__ == "__main__":
         "image_size": [224, 224],
         "phase_1_model": "data/models/resnet18_phase1_best.pt",
         "phase_2_model": "data/models/resnet18_phase2_best.pt",
-        "features_path": "data/features/features_resnet18_phase2.npy",
-        "index_path": "data/features/features_resnet18_phase2.pickle",
+        "features_path": "data/features/features_resnet18_phase2_new.npy",
+        "index_path": "data/features/features_resnet18_phase2_new.pickle",
         "segmentation_path": "data/models/segm.pth",
         "les_path": "data/features/le.pickle"
     }
