@@ -69,9 +69,9 @@ class ClassificationNet(nn.Module):
         self.name = name
         self.n_classes = n_classes
         if name == "alexnet":
-            self.pre_net = getattr(models, name)(pretrained=True, num_classes=2048)
+            self.pre_net = getattr(models, name)(pretrained=True)
             self.features = nn.Sequential(
-                nn.Linear(2048, 512),
+                nn.Linear(4096, 512),
                 nn.ReLU(inplace=True),
                 nn.Linear(512, 512),
                 nn.ReLU(inplace=True),

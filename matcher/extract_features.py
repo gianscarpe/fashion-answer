@@ -15,7 +15,7 @@ if __name__ == "__main__":
         "phase": "2",
         "data_path": "data/fashion-product-images/images",
         "model_name": "resnet18",
-        "n_label": 1,
+        "labels": 1,
         "image_size": [224, 224],
         "load_path": "./data/exps/resnet18_phase2_best.pt",
         "save_path": "./data/features",
@@ -32,8 +32,6 @@ if __name__ == "__main__":
             model.phase1()
         else:
             model.phase2()
-
-
         model.load_state_dict(torch.load(config["load_path"]))
         model.classifier = Identity()
         model.to(device)
@@ -56,7 +54,6 @@ if __name__ == "__main__":
         x = TF.to_tensor(image)
         x = TF.normalize(x, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         x = x.to(device)
-
         feature = model(x.unsqueeze(0))
         if not config["two_phase"]:
             features.append(
@@ -66,21 +63,25 @@ if __name__ == "__main__":
                 ]
             )
         else:
-            features.append(
-                [np.array(feature.data.tolist()[0]) for i in range(config["n_label"])]
-            )
+            features.append([np.array(feature.data.tolist()[0])])
 
     np.save(
         os.path.join(
             config["save_path"],
-            "features_" + config["model_name"] + "_phase" + config["phase"] + ".npy",
+            "features_"
+            + config["model_name"]
+            + ("_phase" + config["phase"] if config["two_phase"] else "")
+            + ".npy",
         ),
         features,
     )
     with open(
         os.path.join(
             config["save_path"],
-            "features_" + config["model_name"] + "_phase" + config["phase"] + ".pickle",
+            "features_"
+            + config["model_name"]
+            + ("_phase" + config["phase"] if config["two_phase"] else "")
+            + ".pickle",
         ),
         "wb",
     ) as f:
