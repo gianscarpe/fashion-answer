@@ -85,7 +85,10 @@ class ClassificationNet(nn.Module):
                 nn.Linear(512, 512),
                 nn.ReLU(inplace=True),
             )
-        self.extract_features()
+        for child in self.pre_net.children():
+            for param in child.parameters():
+                param.requires_grad = False
+        self.classifier()
 
     def extract_features(self):
         for i in range(len(self.n_classes)):
@@ -108,5 +111,6 @@ class ClassificationNet(nn.Module):
         feat = self.features(x)
         results = []
         for i in range(len(self.n_classes)):
-            results.append(getattr(self, "classifier" + str(i))(feat))
+            r = getattr(self, "classifier" + str(i))(feat)
+            results.append(r)
         return tuple(results)
