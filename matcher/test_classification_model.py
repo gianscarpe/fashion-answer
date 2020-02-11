@@ -11,7 +11,7 @@ def main():
         "save_every_freq": False,
         "save_frequency": 2,
         "save_best": True,
-        "classes": ["masterCategory", "subCategory", "gender"],
+        "labels": ["masterCategory", "subCategory"],
         "model_name": "resnet18",
         "batch_size": 16,
         "lr": 0.001,
@@ -46,7 +46,6 @@ def main():
             distinguish_class=config["classes"],
             image_size=config["image_size"],
             transform=normalize,
-            5,
             label_encoder=train_dataset.les,
         ),
         batch_size=config["batch_size"],
@@ -59,8 +58,8 @@ def main():
         name=config["model_name"],
     ).to(device)
 
-    model = torch.load(config["load_path"])
-    test(model, device, val_loader)
+    model.load_state_dict(torch.load(config["load_path"]))
+    test(model, device, val_loader, len(config["labels"]))
 
 
 def test(model, device, test_loader, n_label=3):
