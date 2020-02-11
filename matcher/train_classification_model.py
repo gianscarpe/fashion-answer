@@ -22,7 +22,7 @@ def main():
         "lr": 0.001,
         "num_epochs": 50,
         "weight_decay": 0.0001,
-        "exp_base_dir": "data/exps/exp3",
+        "exp_base_dir": "data/exps",
         "image_size": [224, 224],
         "load_path": None,
     }
@@ -96,7 +96,7 @@ def main():
                     ),
                 )
         if config["save_best"]:
-            accu = sum(accuracies) / len(config["classes"])
+            accu = sum(accuracies) / len(config["labels"])
             if accu > best_accu:
                 print("* PORCA L'OCA SAVE BEST")
                 best_accu = accu
