@@ -16,7 +16,7 @@ def main():
         "save_every_freq": False,
         "save_frequency": 2,
         "save_best": True,
-        "classes": ["masterCategory", "subCategory", "gender"],
+        "labels": ["masterCategory", "subCategory"],
         "model_name": "resnet18",
         "batch_size": 16,
         "lr": 0.001,
@@ -32,27 +32,27 @@ def main():
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     )
+
+    train_dataset = ClassificationDataset(
+        "./data/images/",
+        "./data/small_train.csv",
+        distinguish_class=config["labels"],
+        load_path=None,
+        image_size=config["image_size"],
+        transform=normalize,
+    )
     train_loader = DataLoader(
-        ClassificationDataset(
-            "./data/images/",
-            "./data/small_train.csv",
-            distinguish_class=config["classes"],
-            load_path=None,
-            image_size=config["image_size"],
-            transform=normalize,
-        ),
-        batch_size=config["batch_size"],
-        shuffle=True,
+        train_dataset, batch_size=config["batch_size"], shuffle=True
     )
 
     val_loader = DataLoader(
         ClassificationDataset(
             "./data/images",
             "./data/small_val.csv",
-            distinguish_class=config["classes"],
+            distinguish_class=config["labels"],
             image_size=config["image_size"],
             transform=normalize,
-            thr=5,
+            label_encoder=train_dataset.les,
         ),
         batch_size=config["batch_size"],
         shuffle=True,
@@ -76,8 +76,16 @@ def main():
 
     best_accu = 0.0
     for epoch in range(start_epoch, config["num_epochs"] + 1):
-        train(model, device, train_loader, epoch, optimizer, config["batch_size"])
-        accuracies = test(model, device, val_loader)
+        train(
+            model,
+            device,
+            train_loader,
+            epoch,
+            optimizer,
+            config["batch_size"],
+            len(config["labels"]),
+        )
+        accuracies = test(model, device, val_loader, len(config["labels"]))
         if config["save_every_freq"]:
             if epoch % config["save_frequency"] == 0:
                 torch.save(

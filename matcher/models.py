@@ -63,76 +63,50 @@ class TwoPhaseNet(nn.Module):
 
 
 class ClassificationNet(nn.Module):
-    def __init__(self, image_size, n_classes, name="resnet34", method="classification"):
+    def __init__(self, image_size, n_classes: list, name="resnet34"):
         super(ClassificationNet, self).__init__()
 
         self.name = name
-        self.method = method
-        self.pre_net = getattr(models, name)(pretrained=True)
+        self.n_classes = n_classes
         if name == "alexnet":
-            self.pre_net.classifier[6] = Identity()
-            self.classifier1 = nn.Sequential(
-                nn.Dropout(),
-                nn.Linear(4096, 2048),
+            self.pre_net = getattr(models, name)(pretrained=True, num_classes=2048)
+            self.features = nn.Sequential(
+                nn.Linear(2048, 512),
                 nn.ReLU(inplace=True),
-                nn.Linear(2048, n_classes[0]),
-            )
-            self.classifier2 = nn.Sequential(
-                nn.Dropout(),
-                nn.Linear(4096, 2048),
+                nn.Linear(512, 512),
                 nn.ReLU(inplace=True),
-                nn.Linear(2048, n_classes[1]),
-            )
-            self.classifier3 = nn.Sequential(
-                nn.Dropout(),
-                nn.Linear(4096, 2048),
-                nn.ReLU(inplace=True),
-                nn.Linear(2048, n_classes[2]),
             )
         elif name.startswith("resnet"):
+            self.pre_net = getattr(models, name)(pretrained=True)
             self.pre_net.fc = Identity()
-            self.classifier1 = nn.Sequential(
-                nn.Dropout(),
-                nn.Linear(512, 256),
+            self.features = nn.Sequential(
+                nn.Linear(512, 512),
                 nn.ReLU(inplace=True),
-                nn.Linear(256, n_classes[0]),
-            )
-            self.classifier2 = nn.Sequential(
-                nn.Dropout(),
-                nn.Linear(512, 256),
+                nn.Linear(512, 512),
                 nn.ReLU(inplace=True),
-                nn.Linear(256, n_classes[1]),
             )
-            self.classifier3 = nn.Sequential(
-                nn.Dropout(),
-                nn.Linear(512, 256),
-                nn.ReLU(inplace=True),
-                nn.Linear(256, n_classes[2]),
+        self.extract_features()
+
+    def extract_features(self):
+        for i in range(len(self.n_classes)):
+            setattr(self, "classifier" + str(i), Identity())
+
+    def classifier(self):
+        for i in range(len(self.n_classes)):
+            setattr(
+                self,
+                "classifier" + str(i),
+                nn.Sequential(
+                    nn.Linear(512, 256),
+                    nn.ReLU(inplace=True),
+                    nn.Linear(256, self.n_classes[i]),
+                ),
             )
 
-        for child in self.pre_net.children():
-            for param in child.parameters():
-                param.requires_grad = False
-
-    def forward(self, input):
-        w = self.pre_net(input)
-        x = self.classifier1(w)
-        y = self.classifier2(w)
-        z = self.classifier3(w)
-        return (x, y, z)
-
-    def oneshot(model, device, data):
-        model.eval()
-
-        with torch.no_grad():
-            for i in range(len(data)):
-                data[i] = data[i].to(device)
-
-            output = model(data)
-            return torch.squeeze(torch.argmax(output, dim=1)).cpu().item()
-
-    def set_as_feature_extractor(self, name="alexnet"):
-        self.method = "features"
-        self.classifier1[-1] = Identity()
-        self.classifier2[-1] = Identity()
-        self.classifier3[-1] = Identity()
+    def forward(self, x):
+        x = self.pre_net(x)
+        feat = self.features(x)
+        results = []
+        for i in range(len(self.n_classes)):
+            results.append(getattr(self, "classifier" + str(i))(feat))
+        return tuple(results)

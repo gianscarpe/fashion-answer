@@ -46,7 +46,7 @@ def main():
             distinguish_class=config["classes"],
             image_size=config["image_size"],
             transform=normalize,
-            thr=5,
+            5,
             label_encoder=train_dataset.les,
         ),
         batch_size=config["batch_size"],

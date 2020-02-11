@@ -10,7 +10,7 @@ from matcher.features import FeatureMatcher
 def main():
     config = {
         "phase": "1",
-        "classes": ["masterCategory", 'subCategoryt'],  # subCategory masterCategory
+        "classes": ["masterCategory", "subCategoryt"],  # subCategory masterCategory
         "model_name": "resnet18",
         "batch_size": 16,
         "image_size": [224, 224],
@@ -28,7 +28,6 @@ def main():
         distinguish_class=config["classes"],
         image_size=config["image_size"],
         transform=normalize,
-        thr=5,
     )
 
     test_loader = DataLoader(
@@ -38,15 +37,15 @@ def main():
             distinguish_class=config["classes"],
             image_size=config["image_size"],
             transform=normalize,
-            thr=5,
-            label_encoder=train_dataset.les
+            label_encoder=train_dataset.les,
         ),
         batch_size=1,
         shuffle=False,
     )
 
     import pickle
-    with open("le.pickle", 'wb') as pi:
+
+    with open("le.pickle", "wb") as pi:
         pickle.dump(train_dataset.les, pi)
 
     model = TwoPhaseNet(
@@ -99,9 +98,7 @@ def test(model, fm, device, test_loader, n_label=3):
             target = target.long().to(device)
 
             output = fm.classify(data[0], image_size=[224, 224])
-            accurate_labels += torch.sum(
-                (output == target[:, 0])
-            )
+            accurate_labels += torch.sum((output == target[:, 0]))
 
             all_labels += len(target)
 
